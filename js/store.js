@@ -15,7 +15,9 @@ window.Store = (function () {
       cityAsked: false, wishAsked: false,
       glaze: '',
       wishTrips: [],                        // 驿站「想去」的项目 id
-      goldStamps: []                        // 金章工坊 id（线下回流）
+      goldStamps: [],                       // 金章工坊 id（线下回流）
+      metGranny: false,                     // 任务 q1
+      posterMade: false                     // 任务 q9：生成过学徒帖
     },
     craftsman: {
       name: '', craftType: '', craftCustom: '', years: '',
@@ -26,7 +28,9 @@ window.Store = (function () {
     settings: { sound: null },              // null=未询问
     sim: { myLights: 0, lastVisit: 0, firstSeen: 0 },
     slowwork: {},                           // wsId -> { start }
-    products: []                            // 慢工产物 [{wsId, name, emoji, at}]
+    products: [],                           // 慢工产物 [{wsId, name, emoji, at}]
+    questsDone: [],                         // 已庆祝的任务 id
+    village: { x: 0, y: 0 }                 // 主角在村里的位置（px）
   });
 
   let state = defaults();

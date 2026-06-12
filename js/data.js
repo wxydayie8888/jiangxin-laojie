@@ -366,6 +366,59 @@ window.DATA = {
     goldLetter: '听说你真的来过村里。那天的茶我记得给你续了三回。这枚金章，别人拿不走。——{npc}'
   },
 
+  /* ── 可行走村庄（V2.1：大地图 + 主角 + 任务链）── */
+  village: {
+    map: 'art/village.jpg', mapW: 2800, mapH: 1188,
+    hero: 'art/hero.png',
+    walkBand: [0.81, 0.94],   // 主街可行走纵带（铺装路面，占地图高比例）
+    spawn: [0.05, 0.88],
+    speed: 235,               // px/s
+    listDoor: '📜 一览',
+    backDoor: '🏞 回到村景',
+    spots: [
+      { key: 'granny',  emoji: '👵', name: '阿婆',     x: 0.035, y: 0.72 },
+      { key: 'mail',    emoji: '📮', name: '信箱',     x: 0.072, y: 0.76 },
+      { key: 'shop1',   emoji: '🍵', name: '老茶馆',   x: 0.115, y: 0.68 },
+      { key: 'shop2',   emoji: '🪵', name: '木作堂',   x: 0.185, y: 0.72 },
+      { key: 'shop3',   emoji: '🏺', name: '陶泥坊',   x: 0.255, y: 0.68 },
+      { key: 'shop4',   emoji: '🧶', name: '蓝白坊',   x: 0.325, y: 0.72 },
+      { key: 'lantern', emoji: '🏮', name: '主灯笼',   x: 0.40,  y: 0.80 },
+      { key: 'shop5',   emoji: '🧺', name: '直播间',   x: 0.455, y: 0.68 },
+      { key: 'swing',   emoji: '🪑', name: '秋千',     x: 0.515, y: 0.82 },
+      { key: 'shop6',   emoji: '🪡', name: '联名社',   x: 0.575, y: 0.72 },
+      { key: 'shop7',   emoji: '🖼️', name: '慢时光',  x: 0.645, y: 0.68 },
+      { key: 'shop8',   emoji: '🗺️', name: '驿站铺',  x: 0.715, y: 0.72 },
+      { key: 'shop9',   emoji: '📢', name: '声浪塔',   x: 0.80,  y: 0.66 },
+      { key: 'shop10',  emoji: '⛵', name: '远航码头', x: 0.875, y: 0.72 },
+      { key: 'station', emoji: '🧭', name: '去村里',   x: 0.945, y: 0.76 }
+    ],
+    grannyHello: '来了？这条街老啦，灯也熄了不少。你愿意走走，它就愿意亮。',
+    grannyMet: '阿婆记住你了。',
+    grannyAgain: ['路上慢些，砖缝里有青苔。', '哪间工坊的灯还没亮，去敲敲门。', '猫今天心情不错，秋千那边。', '驿站的木板上，又添了新去处。'],
+    arrive: '到了。'
+  },
+
+  /* ── 任务链：四章，渐进升级 ── */
+  quests: [
+    { id: 'q1',  ch: '序章 · 进村',        title: '去街口，和阿婆打个招呼', spot: 'granny' },
+    { id: 'q2',  ch: '第一章 · 点灯人',    title: '点亮你的第一间工坊',     spot: 'shop-unlit' },
+    { id: 'q3',  ch: '第一章 · 点灯人',    title: '让三盏灯笼亮起来',       spot: 'shop-unlit' },
+    { id: 'q4',  ch: '第一章 · 点灯人',    title: '在街口举行点灯仪式',     spot: 'lantern' },
+    { id: 'q5',  ch: '第二章 · 守艺青年',  title: '在点亮的工坊开一件慢工', spot: 'shop-lit' },
+    { id: 'q6',  ch: '第二章 · 守艺青年',  title: '读一封工匠的回信',       spot: 'mail' },
+    { id: 'q7',  ch: '第二章 · 守艺青年',  title: '收获一件慢工手作',       spot: 'shop-lit' },
+    { id: 'q8',  ch: '第三章 · 匠心合伙人', title: '在驿站挂一块「想去」木牌', spot: 'station' },
+    { id: 'q9',  ch: '第三章 · 匠心合伙人', title: '生成你的学徒帖',          spot: 'station' },
+    { id: 'q10', ch: '第三章 · 匠心合伙人', title: '带一个暗号回村，兑一枚金章', spot: 'station' }
+  ],
+  questUi: {
+    logTitle: '任务 · 一条街的四季',
+    doneMark: '✓',
+    completeToast: '✓ 任务完成：{title}',
+    allDone: '十里老街，都认识你了。剩下的，是真村子的事。',
+    tapHint: '点地面走过去，点木牌进门。'
+  },
+
   /* ── 村民图鉴：收集逻辑（谷子心智）── */
   dex: {
     door: '📖 村民图鉴',

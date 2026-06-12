@@ -221,7 +221,7 @@
       Sfx.arpeggio();
       toast(DATA.youthReg.bagDone, 2600);
       await sleep(1700);
-      go('street');
+      go('village');
     });
     okRow.appendChild(okBtn);
     view.appendChild(grid); view.appendChild(okRow);
@@ -246,6 +246,9 @@
     // 驿站（O2O 入口）与村民图鉴
     const nav = el('div', 'btn-row');
     nav.style.marginBottom = '8px';
+    const vBtn = el('button', 'btn primary', DATA.village.backDoor);
+    vBtn.addEventListener('click', () => go('village'));
+    nav.appendChild(vBtn);
     const stBtn = el('button', 'btn', DATA.station.door);
     stBtn.addEventListener('click', () => go('station'));
     const dxBtn = el('button', 'btn ghost', DATA.dex.door);
@@ -444,7 +447,7 @@
       flow.appendChild(el('p', 'small', kept ? `${ws.keepsake.emoji} ${ws.keepsake.name}，在你的行囊里。` : '上次你笑着说，心领了。'));
       flow.appendChild(buildSlowBox(ws));
       const back = el('button', 'btn ghost', DATA.misc.backStreet);
-      back.addEventListener('click', () => go('street'));
+      back.addEventListener('click', () => go('village'));
       const row = el('div', 'btn-row'); row.appendChild(back);
       flow.appendChild(row);
       view.appendChild(flow);
@@ -493,7 +496,7 @@
         breath.appendChild(el('div', 'swing-wrap', `<p class="hint">${DATA.misc.breathe}</p>`));
         sceneRoot.appendChild(breath);
         await sleep(1500);
-        go('street');
+        go('village');
       }
     });
   };
@@ -665,7 +668,7 @@
     const row2 = el('div', 'btn-row');
     if (role === 'youth') {
       const back = el('button', 'btn ghost', DATA.misc.backStreet);
-      back.addEventListener('click', () => go('street'));
+      back.addEventListener('click', () => go('village'));
       row2.appendChild(back);
     } else {
       const redo = el('button', 'btn ghost', '重新布置工坊');
@@ -822,6 +825,185 @@
     }
   };
 
+  /* ══ 任务引擎：四章任务链，状态即进度（无额外存档负担）══ */
+  const QUEST_CHECKS = {
+    q1: () => S.youth.metGranny,
+    q2: () => S.youth.stamps.length >= 1,
+    q3: () => S.youth.stamps.length >= 3,
+    q4: () => S.youth.ceremonyDone,
+    q5: () => Object.keys(S.slowwork).length > 0 || S.products.length > 0,
+    q6: () => S.letters.read.length > 0 || S.letters.gold.length > 0,
+    q7: () => S.products.length > 0,
+    q8: () => S.youth.wishTrips.length > 0,
+    q9: () => S.youth.posterMade,
+    q10: () => S.youth.goldStamps.length > 0
+  };
+  function activeQuest() { return DATA.quests.find(q => !QUEST_CHECKS[q.id]()); }
+  function evaluateQuests(celebrate) {
+    const fresh = DATA.quests.filter(q => QUEST_CHECKS[q.id]() && !S.questsDone.includes(q.id));
+    if (!fresh.length) return;
+    fresh.forEach(q => S.questsDone.push(q.id));
+    Store.save();
+    if (celebrate) {
+      Sfx.arpeggio();
+      toast(fresh.length > 1 ? `✓ 完成了 ${fresh.length} 个任务` : DATA.questUi.completeToast.replace('{title}', fresh[0].title), 3200);
+    }
+  }
+  function questTargetKey() {
+    const q = activeQuest();
+    if (!q) return null;
+    if (q.spot === 'shop-unlit') { const ws = DATA.workshops.find(w => !S.youth.stamps.includes(w.id)); return ws ? 'shop' + ws.id : null; }
+    if (q.spot === 'shop-lit') { const ws = DATA.workshops.find(w => S.youth.stamps.includes(w.id)); return ws ? 'shop' + ws.id : 'shop1'; }
+    return q.spot;
+  }
+  function showQuestLog() {
+    const ov = $('#overlay');
+    ov.hidden = false; ov.innerHTML = '';
+    const sheet = el('div', 'sheet');
+    sheet.appendChild(el('p', 'hint', DATA.questUi.logTitle));
+    const list = el('div', 'quest-list');
+    const act = activeQuest();
+    let lastCh = '';
+    DATA.quests.forEach(q => {
+      if (q.ch !== lastCh) { lastCh = q.ch; list.appendChild(el('div', 'qch', q.ch)); }
+      const done = QUEST_CHECKS[q.id]();
+      const row = el('div', 'qrow' + (done ? ' done' : '') + (act && act.id === q.id ? ' active' : ''));
+      row.innerHTML = `<span class="st">${done ? '✓' : (act && act.id === q.id ? '❗' : '·')}</span><span>${q.title}</span>`;
+      list.appendChild(row);
+    });
+    sheet.appendChild(list);
+    const row2 = el('div', 'btn-row');
+    row2.style.marginTop = '12px';
+    const lb = el('button', 'btn', DATA.village.listDoor + ' 街巷一览');
+    lb.addEventListener('click', () => { ov.hidden = true; ov.innerHTML = ''; go('street'); });
+    row2.appendChild(lb);
+    sheet.appendChild(row2);
+    const close = el('button', 'btn ghost', '收起来');
+    close.style.cssText = 'width:100%;margin-top:8px;';
+    close.addEventListener('click', () => { ov.hidden = true; ov.innerHTML = ''; });
+    sheet.appendChild(close);
+    ov.appendChild(sheet);
+  }
+
+  /* ══ 可行走村庄：大地图 + 主角 + 镜头跟随（V2.1）══ */
+  Scenes.village = view => {
+    const V = DATA.village;
+    const vp = el('div', 'village-vp');
+    view.appendChild(vp);
+    const wrap = el('div', 'vmap-wrap');
+    wrap.style.cssText = `width:${V.mapW}px;height:${V.mapH}px;`;
+    const mapImg = new Image();
+    mapImg.className = 'vmap';
+    mapImg.src = V.map;
+    mapImg.style.cssText = `width:${V.mapW}px;height:${V.mapH}px;`;
+    wrap.appendChild(mapImg);
+    vp.appendChild(wrap);
+
+    // 主角
+    if (!S.village.x) { S.village.x = V.spawn[0] * V.mapW; S.village.y = V.spawn[1] * V.mapH; }
+    let hx = S.village.x, hy = S.village.y, tx = hx, ty = hy, pending = null, lastT = 0;
+    const hero = el('div', 'hero');
+    const flipper = el('div', 'flipper');
+    const hi = new Image(); hi.src = V.hero;
+    flipper.appendChild(hi);
+    hero.appendChild(flipper);
+    hero.appendChild(el('div', 'hshadow'));
+    wrap.appendChild(hero);
+
+    const bandY = [V.walkBand[0] * V.mapH, V.walkBand[1] * V.mapH];
+    const clampPt = (x, y) => [Math.max(40, Math.min(V.mapW - 40, x)), Math.max(bandY[0], Math.min(bandY[1], y))];
+
+    function place() { hero.style.left = hx + 'px'; hero.style.top = hy + 'px'; }
+    function camera() {
+      const vw = vp.clientWidth || 1, vh = vp.clientHeight || 1;
+      const cx = Math.max(0, Math.min(V.mapW - vw, hx - vw / 2));
+      const cy = Math.max(0, Math.min(V.mapH - vh, hy - vh * 0.58));
+      wrap.style.transform = `translate(${-cx}px,${-cy}px)`;
+    }
+    function step(now) {
+      const dt = lastT ? Math.min(0.05, (now - lastT) / 1000) : 0;
+      lastT = now;
+      const dx = tx - hx, dy = ty - hy, d = Math.hypot(dx, dy);
+      if (d > 4) {
+        hero.classList.add('moving');
+        if (Math.abs(dx) > 2) hero.classList.toggle('flip', dx < 0);
+        const adv = Math.min(d, V.speed * dt);
+        hx += dx / d * adv; hy += dy / d * adv;
+        place(); camera();
+      } else if (hero.classList.contains('moving')) {
+        hero.classList.remove('moving');
+        S.village.x = hx; S.village.y = hy; Store.save();
+        if (pending) { const p = pending; pending = null; act(p); }
+      }
+    }
+    // 双驱动：rAF 保证可见时丝滑，setInterval 兜底后台节流（真机切后台也能走完）
+    function raf(t) { if (!vp.isConnected) return; step(t); requestAnimationFrame(raf); }
+    const safety = setInterval(() => {
+      if (!vp.isConnected) { clearInterval(safety); return; }
+      if (performance.now() - lastT > 120) step(performance.now());
+    }, 60);
+    place();
+    requestAnimationFrame(() => { camera(); requestAnimationFrame(raf); });
+
+    // 点地面行走
+    vp.addEventListener('pointerdown', e => {
+      const r = wrap.getBoundingClientRect();
+      const p = clampPt(e.clientX - r.left, e.clientY - r.top);
+      tx = p[0]; ty = p[1]; pending = null;
+    });
+
+    // 热点木牌
+    const targetKey = questTargetKey();
+    V.spots.forEach(s => {
+      if (s.key === 'lantern' && (S.youth.stamps.length < 3 || S.youth.ceremonyDone)) return;
+      const shopId = s.key.startsWith('shop') ? +s.key.slice(4) : null;
+      const spot = el('button', 'vspot' + (shopId && S.youth.stamps.includes(shopId) ? ' lit' : ''));
+      let name = s.name;
+      if (s.key === 'mail') { const n = Store.unreadLetters().length; if (n) name += ' · ' + n; }
+      if (shopId && Store.slowState(shopId).status === 'ready') name += ' ✨';
+      spot.innerHTML = `${targetKey === s.key ? '<span class="qmark">❗</span>' : ''}<span class="plaque">${s.emoji} ${name}</span><span class="pin"></span>`;
+      spot.style.left = s.x * V.mapW + 'px';
+      spot.style.top = s.y * V.mapH + 'px';
+      spot.addEventListener('pointerdown', e => e.stopPropagation());
+      spot.addEventListener('click', e => {
+        e.stopPropagation();
+        const p = clampPt(s.x * V.mapW, s.y * V.mapH + 24);
+        if (Math.hypot(hx - p[0], hy - p[1]) < 100) { act(s); return; }
+        tx = p[0]; ty = p[1]; pending = s;
+        Sfx.knock();
+      });
+      wrap.appendChild(spot);
+    });
+
+    function act(s) {
+      if (s.key === 'granny') {
+        const first = !S.youth.metGranny;
+        if (first) { S.youth.metGranny = true; Store.save(); }
+        askSheet('👵', first ? DATA.village.grannyHello : DATA.village.grannyAgain[Math.floor(Math.random() * DATA.village.grannyAgain.length)],
+          { chips: ['哎，阿婆'] },
+          () => { setTimeout(() => go('village'), 600); return first ? DATA.village.grannyMet : null; });
+      }
+      else if (s.key === 'mail') go('mailbox');
+      else if (s.key === 'swing') go('corner');
+      else if (s.key === 'station') go('station');
+      else if (s.key === 'lantern') go('ceremony');
+      else if (s.key.startsWith('shop')) go('workshop', +s.key.slice(4));
+    }
+
+    // HUD：任务横幅 + 操作提示（先结算再渲染，计数才准）
+    evaluateQuests(true);
+    const q = activeQuest();
+    const banner = el('button', 'quest-banner');
+    banner.innerHTML = q
+      ? `<span class="ch">${q.ch}</span><span class="qt">${q.title}</span><span class="more">📜 ${S.questsDone.length}/${DATA.quests.length}</span>`
+      : `<span class="ch">圆满</span><span class="qt">${DATA.questUi.allDone}</span><span class="more">📜</span>`;
+    banner.addEventListener('click', showQuestLog);
+    view.appendChild(banner);
+    view.appendChild(el('div', 'village-hint', DATA.questUi.tapHint));
+
+    maybeAsk();
+  };
+
   /* ── 「去村里」驿站：线下项目 + 金章暗号（策划案 15 章 O2O）── */
   Scenes.station = view => {
     const ST = DATA.station;
@@ -887,6 +1069,7 @@
       img.className = 'poster-img';
       img.style.cssText = 'display:block;margin:0 auto;width:min(70%,280px);';
       img.src = Poster.apprentice();
+      S.youth.posterMade = true; Store.save();
       sheet.appendChild(img);
       sheet.appendChild(el('p', 'small', DATA.misc.posterSaveHint));
       const close = el('button', 'btn ghost', '收起来');
@@ -898,7 +1081,7 @@
     const sBtn = el('button', 'btn', ST.signupBtn);
     sBtn.addEventListener('click', () => toast('正式报名渠道上线后在这里跳转。', 3000));
     const back = el('button', 'btn ghost', DATA.misc.backStreet);
-    back.addEventListener('click', () => go('street'));
+    back.addEventListener('click', () => go('village'));
     foot.appendChild(pBtn); foot.appendChild(sBtn); foot.appendChild(back);
     foot.style.padding = '0 22px 18px';
     view.appendChild(foot);
@@ -951,7 +1134,7 @@
     const row = el('div', 'btn-row');
     row.style.padding = '0 0 16px';
     const back = el('button', 'btn ghost', DATA.misc.backStreet);
-    back.addEventListener('click', () => go('street'));
+    back.addEventListener('click', () => go('village'));
     row.appendChild(back);
     scroll.appendChild(row);
   };
@@ -972,7 +1155,7 @@
     const stay = el('button', 'btn ghost', DATA.corner.stay);
     stay.addEventListener('click', () => toast('嗯。'));
     const leave = el('button', 'btn', DATA.corner.leave);
-    leave.addEventListener('click', () => { clearTimeout(timer); go('street'); });
+    leave.addEventListener('click', () => { clearTimeout(timer); go('village'); });
     row.appendChild(stay); row.appendChild(leave);
     wrap.appendChild(row);
   };
@@ -998,7 +1181,7 @@
     const row = el('div', 'btn-row');
     row.style.padding = '0 22px 18px';
     const back = el('button', 'btn ghost', DATA.misc.backStreet);
-    back.addEventListener('click', () => go('street'));
+    back.addEventListener('click', () => go('village'));
     row.appendChild(back);
     view.appendChild(row);
   };
@@ -1080,7 +1263,7 @@
     let target = 'boot';
     if (S.role === 'youth' && S.youth.nickname && S.youth.bagItems.length === 3) {
       const fresh = Store.deliverLetters();
-      target = 'street';
+      target = 'village';
       if (fresh.length) setTimeout(() => toast(DATA.mailbox.badge.replace('{n}', Store.unreadLetters().length), 3400), 1400);
     } else if (S.role === 'craftsman' && S.craftsman.name) {
       target = S.craftsman.opened ? 'posterC' : 'decorate';

@@ -132,6 +132,10 @@
     chip.hidden = !isYouthStreet;
     if (isYouthStreet) chip.querySelector('span').textContent = S.youth.stamps.length;
     $('#btn-bag').hidden = !isYouthStreet;
+    const pc = $('#points-chip');
+    if (pc) { pc.hidden = !isYouthStreet; pc.querySelector('span').textContent = S.points; }
+    const cc = $('#coins-chip');
+    if (cc) { cc.hidden = !isYouthStreet; cc.querySelector('span').textContent = S.coins; }
   }
 
   /* ── S0 开屏 ── */
@@ -431,7 +435,11 @@
         box.appendChild(el('div', 'sw-line', `<span class="e">${def.emoji}</span>${def.verb}`));
         const durMs = def.hours * 3600000 / (DATA.demoSpeed || 1);
         const b = el('button', 'btn primary', DATA.slowUi.start.replace('{t}', Store.fmtDur(durMs)));
-        b.addEventListener('click', () => { Store.startSlow(ws.id); Sfx.knock(); render(); });
+        b.addEventListener('click', () => {
+          Store.startSlow(ws.id);
+          S.slowCount[ws.id] = (S.slowCount[ws.id] || 0) + 1; Store.save();
+          gain('slowStart'); Sfx.knock(); render();
+        });
         box.appendChild(b);
       } else if (st.status === 'waiting') {
         box.appendChild(el('div', 'sw-line',
@@ -443,12 +451,33 @@
           const p = Store.collectSlow(ws.id);
           Sfx.arpeggio();
           toast(DATA.slowUi.collected.replace('{name}', p.name) + ' ' + def.done, 4200);
+          gain('slowCollect');
           render();
         });
         box.appendChild(b);
       }
     }
     render();
+
+    // ── 修缮（大掌柜式经营环：铜板 → 加速慢工）──
+    const lv = S.shopLv[ws.id] || 0;
+    if (lv < DATA.coins.repairCosts.length) {
+      const cost = DATA.coins.repairCosts[lv];
+      const rb = el('button', 'btn ghost', '🔨 ' + DATA.orderUi.repairBtn.replace('{c}', cost) + (lv ? ` ★${lv}` : ''));
+      rb.addEventListener('click', () => {
+        if (S.coins < cost) { toast(DATA.orderUi.noCoins); Sfx.knock(); return; }
+        S.coins -= cost;
+        S.shopLv[ws.id] = lv + 1;
+        Store.save();
+        updateTopbar();
+        Sfx.ceremony();
+        toast(DATA.orderUi.repaired, 3200);
+        go('workshop', ws.id);
+      });
+      box.appendChild(rb);
+    } else {
+      box.appendChild(el('p', 'small', DATA.orderUi.repairMax + ' ★★'));
+    }
     return box;
   }
 
@@ -492,6 +521,7 @@
       Store.save();
       updateTopbar();
       Sfx.stamp();
+      gain('stamp');
 
       stage.remove();
       const flow = el('div', 'done-flow scene-pad');
@@ -513,7 +543,8 @@
       flow.appendChild(row);
 
       async function finish(kept) {
-        if (kept) { S.youth.keepsakes.push(id); Store.save(); }
+        if (kept) { S.youth.keepsakes.push(id); Store.save(); gain('keepsake'); }
+        else { S.flags.declined = true; Store.save(); gain('decline'); }
         row.remove();
         Sfx.chime();
         flow.appendChild(el('p', 'small', kept ? DATA.workshopOut.keepFx : DATA.workshopOut.declineFx));
@@ -567,6 +598,7 @@
       S.youth.ceremonyDone = true;
       if (!S.youth.visitorNo) { S.sim.myLights++; S.youth.visitorNo = Store.globalLights(); }
       Store.save();
+      gain('ceremony');
       document.body.classList.remove('dusk');
       document.body.classList.add('warm');
       await sleep(1200);
@@ -872,6 +904,10 @@
     if (!fresh.length) return;
     fresh.forEach(q => S.questsDone.push(q.id));
     Store.save();
+    const pr = Store.addPoints(DATA.points.gain.quest[0] * fresh.length);
+    pointsFx(DATA.points.gain.quest[0] * fresh.length, DATA.points.gain.quest[1]);
+    updateTopbar();
+    if (pr.leveled) setTimeout(() => levelUpCard(pr.after[1]), 700);
     if (celebrate) {
       Sfx.arpeggio();
       toast(fresh.length > 1 ? `✓ 完成了 ${fresh.length} 个任务` : DATA.questUi.completeToast.replace('{title}', fresh[0].title), 3200);
@@ -884,22 +920,152 @@
     if (q.spot === 'shop-lit') { const ws = DATA.workshops.find(w => S.youth.stamps.includes(w.id)); return ws ? 'shop' + ws.id : 'shop1'; }
     return q.spot;
   }
-  function showQuestLog() {
+  /* ══ 灯火值：加分 + 飘字 + 升级卡（积分不买强度，买故事）══ */
+  function pointsFx(n, why) {
+    const chipEl = $('#points-chip');
+    if (chipEl) {
+      chipEl.querySelector('span').textContent = S.points;
+      chipEl.classList.remove('pulse'); void chipEl.offsetWidth; chipEl.classList.add('pulse');
+    }
+    const f = el('div', 'float-pts', `+${n} ${DATA.points.name}${why ? ' · ' + why : ''}`);
+    document.getElementById('app').appendChild(f);
+    setTimeout(() => f.remove(), 1800);
+  }
+  function levelUpCard(name) {
+    const ov = $('#overlay');
+    ov.hidden = false; ov.innerHTML = '';
+    const sheet = el('div', 'sheet levelup');
+    sheet.innerHTML = `<div class="lu-spark">✨</div><p class="hint">${DATA.points.levelUp}</p>
+      <p class="small">${DATA.points.levelUpSub}</p><div class="lu-name">${name}</div>
+      <p class="small">${DATA.points.loreUnlock}</p>`;
+    const row = el('div', 'btn-row');
+    const b = el('button', 'btn primary', '翻开村志');
+    b.addEventListener('click', () => { ov.hidden = true; ov.innerHTML = ''; showBoard(3); });
+    const c = el('button', 'btn ghost', '继续赶路');
+    c.addEventListener('click', () => { ov.hidden = true; ov.innerHTML = ''; });
+    row.appendChild(b); row.appendChild(c);
+    sheet.appendChild(row);
+    ov.appendChild(sheet);
+    Sfx.ceremony();
+  }
+  function coinsFx(n, why) {
+    const chipEl = $('#coins-chip');
+    if (chipEl) {
+      chipEl.querySelector('span').textContent = S.coins;
+      chipEl.classList.remove('pulse'); void chipEl.offsetWidth; chipEl.classList.add('pulse');
+    }
+    const f = el('div', 'float-pts', `+${n} ${DATA.coins.name}${why ? ' · ' + why : ''}`);
+    document.getElementById('app').appendChild(f);
+    setTimeout(() => f.remove(), 1800);
+  }
+  function gain(key, mult) {
+    const def = DATA.points.gain[key];
+    if (!def) return;
+    const total = def[0] * (mult || 1);
+    if (!total) return;
+    const r = Store.addPoints(total);
+    pointsFx(total, def[1]);
+    updateTopbar();
+    if (r.leveled) setTimeout(() => levelUpCard(r.after[1]), 700);
+  }
+
+  /* ══ 悬赏（侧任务）：状态即进度 ══ */
+  const SIDE_CHECKS = {
+    s1: () => DATA.npcs.filter(n => n.key !== 'motuan').every(n => (S.npcChats[n.key] || []).length > 0),
+    s2: () => S.products.length >= 3,
+    s3: () => S.visitParts.length >= 3,
+    s4: () => !!S.flags.declined,
+    s5: () => !!S.flags.swung,
+    s6: () => S.letters.read.length + S.letters.gold.length >= 5,
+    s7: () => Object.values(S.slowCount || {}).some(c => c >= 2),
+    s8: () => S.youth.stamps.length >= 10
+  };
+
+  /* ══ 村务板：主线 / 悬赏 / 村志 ══ */
+  function showBoard(tab) {
     const ov = $('#overlay');
     ov.hidden = false; ov.innerHTML = '';
     const sheet = el('div', 'sheet');
-    sheet.appendChild(el('p', 'hint', DATA.questUi.logTitle));
-    const list = el('div', 'quest-list');
-    const act = activeQuest();
-    let lastCh = '';
-    DATA.quests.forEach(q => {
-      if (q.ch !== lastCh) { lastCh = q.ch; list.appendChild(el('div', 'qch', q.ch)); }
-      const done = QUEST_CHECKS[q.id]();
-      const row = el('div', 'qrow' + (done ? ' done' : '') + (act && act.id === q.id ? ' active' : ''));
-      row.innerHTML = `<span class="st">${done ? '✓' : (act && act.id === q.id ? '❗' : '·')}</span><span>${q.title}</span>`;
-      list.appendChild(row);
+    sheet.appendChild(el('p', 'hint',
+      `${DATA.board.emoji} ${DATA.board.name} · ${DATA.points.chip} ${S.points} ${DATA.points.name} · ${Store.level()[1]}`));
+    const tabs = el('div', 'chips board-tabs');
+    DATA.board.tabs.forEach((t, i) => {
+      const c = el('button', 'chip' + (i === tab ? ' on' : ''), t);
+      c.addEventListener('click', () => showBoard(i));
+      tabs.appendChild(c);
     });
-    sheet.appendChild(list);
+    sheet.appendChild(tabs);
+    const body = el('div', 'quest-list');
+
+    if (tab === 0) {
+      const act = activeQuest();
+      let lastCh = '';
+      DATA.quests.forEach(q => {
+        if (q.ch !== lastCh) { lastCh = q.ch; body.appendChild(el('div', 'qch', q.ch)); }
+        const done = QUEST_CHECKS[q.id]();
+        const row = el('div', 'qrow' + (done ? ' done' : '') + (act && act.id === q.id ? ' active' : ''));
+        row.innerHTML = `<span class="st">${done ? '✓' : (act && act.id === q.id ? '❗' : '·')}</span><span>${q.title}</span>`;
+        body.appendChild(row);
+      });
+    } else if (tab === 1) {
+      body.appendChild(el('p', 'small', DATA.board.sideTitle));
+      DATA.board.sides.forEach(sd => {
+        const done = SIDE_CHECKS[sd.id]();
+        const claimed = S.sideClaimed.includes(sd.id);
+        const row = el('div', 'qrow' + (claimed ? ' done' : ''));
+        row.innerHTML = `<span class="st">${claimed ? '✓' : done ? '●' : '·'}</span><span style="flex:1">${sd.title}</span><span class="pts">+${sd.pts}</span>`;
+        if (done && !claimed) {
+          const b = el('button', 'chip on', DATA.board.claim);
+          b.addEventListener('click', () => {
+            S.sideClaimed.push(sd.id);
+            const r = Store.addPoints(sd.pts);
+            Store.save();
+            pointsFx(sd.pts, sd.title.split('：')[0]);
+            updateTopbar();
+            Sfx.arpeggio();
+            if (r.leveled) { ov.hidden = true; ov.innerHTML = ''; setTimeout(() => levelUpCard(r.after[1]), 500); }
+            else showBoard(1);
+          });
+          row.appendChild(b);
+        }
+        body.appendChild(row);
+      });
+    } else if (tab === 2) {
+      body.appendChild(el('p', 'small', DATA.orderUi.title));
+      DATA.orders.forEach(od => {
+        const done = S.ordersDone.includes(od.id);
+        const lit = S.youth.stamps.includes(od.ws);
+        const ws = DATA.workshops.find(w => w.id === od.ws);
+        const prodIdx = S.products.findIndex(p => p.wsId === od.ws);
+        const row = el('div', 'qrow' + (done ? ' done' : ''));
+        row.innerHTML = `<span class="st">${done ? '✓' : lit ? '●' : '·'}</span>
+          <div style="flex:1;min-width:0"><b style="font-size:13px">${od.buyer}</b>
+          <div class="small">想要：${od.want}（${ws.name}）</div>
+          ${done ? `<div class="small">“${od.note}”</div>` : (lit && prodIdx < 0 ? `<div class="small">${DATA.orderUi.needMake}</div>` : '') + (!lit ? `<div class="small">${DATA.orderUi.notLit}</div>` : '')}</div>`;
+        if (!done && lit && prodIdx >= 0) {
+          const b = el('button', 'chip on', DATA.orderUi.ship);
+          b.addEventListener('click', () => {
+            S.products.splice(prodIdx, 1);
+            S.ordersDone.push(od.id);
+            Store.addCoins(DATA.coins.orderReward);
+            coinsFx(DATA.coins.orderReward, od.buyer.split(' · ')[1]);
+            updateTopbar();
+            Sfx.arpeggio();
+            toast(DATA.orderUi.shipped + '\n“' + od.note + '”', 5200);
+            showBoard(2);
+          });
+          row.appendChild(b);
+        }
+        body.appendChild(row);
+      });
+    } else {
+      const lv = Store.level()[0];
+      DATA.lore.forEach(en => {
+        if (en.lv <= lv) body.appendChild(el('div', 'lore-card', `<b>${en.title}</b><p>${en.text}</p>`));
+        else body.appendChild(el('div', 'lore-card locked', DATA.board.lockedLore));
+      });
+    }
+    sheet.appendChild(body);
     const row2 = el('div', 'btn-row');
     row2.style.marginTop = '12px';
     const lb = el('button', 'btn', DATA.village.listDoor + ' 街巷一览');
@@ -912,10 +1078,13 @@
     sheet.appendChild(close);
     ov.appendChild(sheet);
   }
+  function showQuestLog() { showBoard(0); }
 
   /* ══ 可行走村庄：大地图 + 主角 + 镜头跟随（V2.1）══ */
   Scenes.village = view => {
     const V = DATA.village;
+    const dpNow = Store.daypart();
+    if (!S.visitParts.includes(dpNow)) { S.visitParts.push(dpNow); Store.save(); }
     const vp = el('div', 'village-vp');
     view.appendChild(vp);
     const wrap = el('div', 'vmap-wrap');
@@ -963,7 +1132,7 @@
       } else if (hero.classList.contains('moving')) {
         hero.classList.remove('moving');
         S.village.x = hx; S.village.y = hy; Store.save();
-        if (pending) { const p = pending; pending = null; act(p); }
+        if (pending) { const p = pending; pending = null; p.npcChat ? chatNpc(p.npcChat, p.chIdx) : act(p); }
       }
     }
     // 双驱动：rAF 保证可见时丝滑，setInterval 兜底后台节流（真机切后台也能走完）
@@ -980,6 +1149,10 @@
       const r = wrap.getBoundingClientRect();
       const p = clampPt(e.clientX - r.left, e.clientY - r.top);
       tx = p[0]; ty = p[1]; pending = null;
+      const rip = el('div', 'tap-ripple');
+      rip.style.cssText = `left:${p[0]}px;top:${p[1]}px;`;
+      wrap.appendChild(rip);
+      setTimeout(() => rip.remove(), 700);
     });
 
     // 热点木牌
@@ -990,6 +1163,7 @@
       const spot = el('button', 'vspot' + (shopId && S.youth.stamps.includes(shopId) ? ' lit' : ''));
       let name = s.name;
       if (s.key === 'mail') { const n = Store.unreadLetters().length; if (n) name += ' · ' + n; }
+      if (shopId && S.shopLv[shopId]) name += ' ' + '★'.repeat(S.shopLv[shopId]);
       if (shopId && Store.slowState(shopId).status === 'ready') name += ' ✨';
       spot.innerHTML = `${targetKey === s.key ? '<span class="qmark">❗</span>' : ''}<span class="plaque">${s.emoji} ${name}</span><span class="pin"></span>`;
       spot.style.left = s.x * V.mapW + 'px';
@@ -1005,7 +1179,51 @@
       wrap.appendChild(spot);
     });
 
+    // ── 轨迹系 NPC：对白随章节换新；老韩按时段出勤；豆豆巡逻；墨团蹲在任务目标旁 ──
+    const chapters = [...new Set(DATA.quests.map(q => q.ch))];
+    const aq = activeQuest();
+    const chIdx = aq ? Math.max(0, chapters.indexOf(aq.ch)) : chapters.length - 1;
+    DATA.npcs.forEach(npc => {
+      if (npc.dayparts && !npc.dayparts.includes(Store.daypart())) return;
+      let nx = npc.x, ny = npc.y;
+      if (npc.follow === 'target') {
+        const tk = questTargetKey();
+        const ts = V.spots.find(sp => sp.key === tk) || V.spots.find(sp => sp.key === 'swing');
+        nx = Math.min(0.96, ts.x + 0.02); ny = Math.min(0.92, ts.y + 0.08);
+      }
+      const nb = el('button', 'npc-chip' + (npc.patrol ? ' patrol' : ''));
+      nb.innerHTML = `<span class="e">${npc.emoji}</span><span>${npc.name}</span>`;
+      nb.style.left = nx * V.mapW + 'px';
+      nb.style.top = ny * V.mapH + 'px';
+      if (npc.patrol) nb.style.setProperty('--patrol', npc.patrol + 'px');
+      nb.addEventListener('pointerdown', e => e.stopPropagation());
+      nb.addEventListener('click', e => {
+        e.stopPropagation();
+        const p = clampPt(nx * V.mapW, ny * V.mapH + 12);
+        if (Math.hypot(hx - p[0], hy - p[1]) < 110) { chatNpc(npc, chIdx); return; }
+        tx = p[0]; ty = p[1]; pending = { npcChat: npc, chIdx };
+        Sfx.knock();
+      });
+      wrap.appendChild(nb);
+    });
+
+    function chatNpc(npc, ci) {
+      const pool = npc.lines[Math.min(ci, npc.lines.length - 1)];
+      let line = pool[Math.floor(Math.random() * pool.length)];
+      const isF = S.youth.hero === 'f';
+      line = line.replace(/哥哥\/姐姐/g, isF ? '姐姐' : '哥哥')
+                 .replace(/哥\/姐/g, isF ? '姐' : '哥')
+                 .replace(/丫头\/小子/g, isF ? '丫头' : '小子');
+      const arr = S.npcChats[npc.key] || (S.npcChats[npc.key] = []);
+      const firstThisCh = !arr.includes(ci);
+      askSheet(npc.emoji, line, { chips: ['嗯嗯', '改天再聊'] }, () => {
+        if (firstThisCh) { arr.push(ci); Store.save(); gain('chat'); }
+        return null;
+      });
+    }
+
     function act(s) {
+      if (s.key === 'board') { showBoard(1); return; }
       if (s.key === 'granny') {
         const first = !S.youth.metGranny;
         if (first) { S.youth.metGranny = true; Store.save(); }
@@ -1050,7 +1268,11 @@
       chip.addEventListener('click', () => {
         const i = S.youth.wishTrips.indexOf(p.id);
         if (i >= 0) { S.youth.wishTrips.splice(i, 1); chip.classList.remove('on'); chip.textContent = ST.wishBtn; }
-        else { S.youth.wishTrips.push(p.id); chip.classList.add('on'); chip.textContent = ST.wishedBtn; Sfx.chime(); toast(ST.wished); }
+        else {
+          S.youth.wishTrips.push(p.id); chip.classList.add('on'); chip.textContent = ST.wishedBtn;
+          Sfx.chime(); toast(ST.wished);
+          if (!S.flags['w_' + p.id]) { S.flags['w_' + p.id] = true; gain('wish'); }
+        }
         Store.save();
       });
       card.appendChild(chip);
@@ -1082,6 +1304,7 @@
       Sfx.stamp(); Sfx.arpeggio();
       inp.value = '';
       toast(ST.goldOk.replace('{name}', ws.name), 3600);
+      gain('gold');
     });
     row.appendChild(inp); row.appendChild(ok);
     gold.appendChild(row);
@@ -1099,7 +1322,7 @@
       img.className = 'poster-img';
       img.style.cssText = 'display:block;margin:0 auto;width:min(70%,280px);';
       img.src = Poster.apprentice();
-      S.youth.posterMade = true; Store.save();
+      if (!S.youth.posterMade) { S.youth.posterMade = true; Store.save(); gain('poster'); }
       sheet.appendChild(img);
       sheet.appendChild(el('p', 'small', DATA.misc.posterSaveHint));
       const close = el('button', 'btn ghost', '收起来');
@@ -1177,6 +1400,7 @@
     const p = el('p', 'whisper', `<p>${DATA.corner.enter}</p>`);
     wrap.appendChild(p);
     const timer = setTimeout(() => {
+      S.flags.swung = true; Store.save();
       p.innerHTML = `<p>${DATA.corner.later}</p>`;
       wrap.insertBefore(el('div', 'boot-cat', '🐈'), p);
       Sfx.chime();
@@ -1192,6 +1416,7 @@
 
   /* ── 信箱 ── */
   Scenes.mailbox = view => {
+    const newlyRead = Store.unreadLetters().length;
     view.appendChild(el('div', 'shop-head scene-pad', `<h2>📮 信箱</h2>`));
     const list = el('div', 'mail-list');
     view.appendChild(list);
@@ -1207,6 +1432,7 @@
       if (!S.letters.read.includes(id)) S.letters.read.push(id);
     });
     Store.save();
+    if (newlyRead) gain('letter', newlyRead);
     if (S.letters.delivered.length) list.appendChild(el('p', 'small', DATA.mailbox.allRead));
     const row = el('div', 'btn-row');
     row.style.padding = '0 22px 18px';
@@ -1235,7 +1461,7 @@
       const gold = S.youth.goldStamps.includes(ws.id);
       const cell = el('div', 'stamp-cell' + (got ? ' got' : '') + (gold ? ' gold' : ''),
         `<div class="s">${got ? ws.emoji : '·'}</div>${got ? (gold ? '🏅' + ws.stamp : ws.stamp) : '？'}`);
-      if (got) cell.addEventListener('click', () => toast(ws.card, 3600));
+      if (got) cell.addEventListener('click', () => toast('🥚 这枚章在现实里有个名字：「' + ws.action + '」——焕青计划十大公益行动之一。', 4600));
       grid.appendChild(cell);
     });
     sheet.appendChild(grid);

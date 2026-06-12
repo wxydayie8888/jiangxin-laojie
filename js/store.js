@@ -31,7 +31,16 @@ window.Store = (function () {
     slowwork: {},                           // wsId -> { start }
     products: [],                           // 慢工产物 [{wsId, name, emoji, at}]
     questsDone: [],                         // 已庆祝的任务 id
-    village: { x: 0, y: 0 }                 // 主角在村里的位置（px）
+    village: { x: 0, y: 0 },                // 主角在村里的位置（px）
+    points: 0,                              // 灯火值
+    npcChats: {},                           // npcKey -> [聊过的章节]
+    visitParts: [],                         // 来过的时段（悬赏 s3）
+    flags: {},                              // 杂项一次性标记（declined/swung/w_xx）
+    sideClaimed: [],                        // 已领取的悬赏 id
+    slowCount: {},                          // wsId -> 开慢工次数（悬赏 s7）
+    coins: 0,                               // 铜板（经营环货币）
+    ordersDone: [],                         // 已发货订单 id
+    shopLv: {}                              // wsId -> 修缮等级（0-2，加速慢工）
   });
 
   let state = defaults();
@@ -60,9 +69,26 @@ window.Store = (function () {
     return DATA.counterBase + Math.floor(elapsed / DATA.counterStepMs) + state.sim.myLights;
   }
 
+  /* 灯火等级：[索引, 称号名] */
+  function level() {
+    const ls = DATA.points.levels;
+    let idx = 0;
+    for (let i = 0; i < ls.length; i++) if (state.points >= ls[i][0]) idx = i;
+    return [idx, ls[idx][1]];
+  }
+  /* 纯加分；展示特效由 app 层处理。返回升级前后信息 */
+  function addPoints(n) {
+    const before = level();
+    state.points += n;
+    const after = level();
+    save();
+    return { before, after, leveled: after[0] > before[0] };
+  }
+
   function title(role) {
+    if (role === 'youth') return level()[1];   // 青年称号由灯火等级决定
     const rules = DATA.titles[role];
-    const n = role === 'youth' ? state.youth.keepsakes.length : state.craftsman.visibility.length;
+    const n = state.craftsman.visibility.length;
     let t = rules[0][1];
     for (const [min, name] of rules) if (n >= min) t = name;
     return t;
@@ -97,7 +123,8 @@ window.Store = (function () {
 
   /* ── 慢工系统 ── */
   function slowDurMs(id) {
-    return DATA.slowwork[id].hours * 3600000 / (DATA.demoSpeed || 1);
+    const lv = (state.shopLv && state.shopLv[id]) || 0;
+    return DATA.slowwork[id].hours * 3600000 / (DATA.demoSpeed || 1) * (1 - 0.2 * lv);
   }
   function slowState(id) {
     const rec = state.slowwork[id];
@@ -127,5 +154,6 @@ window.Store = (function () {
   }
 
   return { state, save, globalLights, title, deliverLetters, unreadLetters, reset,
-           daypart, slowState, startSlow, collectSlow, fmtDur };
+           daypart, slowState, startSlow, collectSlow, fmtDur, level, addPoints,
+           addCoins(n) { state.coins += n; save(); } };
 })();

@@ -641,3 +641,54 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
 .quest-list .qrow.done { color: var(--ink-dim); }
 .quest-list .qrow.active .st { color: #C4554D; font-weight: 700; }
 .village-hint { position: absolute; bottom: calc(14px + env(safe-area-inset-bottom)); left: 0; right: 0; text-align: center; font-size: 12px; color: rgba(74,64,54,.75); z-index: 8; pointer-events: none; text-shadow: 0 1px 6px rgba(247,239,226,.8); }
+
+/* ── 轨迹系 NPC ── */
+.npc-chip {
+  position: absolute; transform: translate(-50%, -100%); z-index: 5;
+  display: flex; align-items: center; gap: 5px; cursor: pointer;
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  border: 1.5px solid var(--bamboo); border-radius: 99px; padding: 4px 11px 4px 6px;
+  font-size: 12px; color: var(--ink); font-family: inherit;
+  box-shadow: 0 3px 9px rgba(40,30,20,.2);
+}
+.npc-chip .e { font-size: 16px; }
+.npc-chip.patrol { animation: patrol 7s ease-in-out infinite; }
+@keyframes patrol {
+  0%, 100% { margin-left: 0; }
+  50% { margin-left: var(--patrol, 100px); }
+}
+
+/* ── 灯火值 ── */
+#points-chip { margin-left: 8px; }
+#points-chip.pulse { animation: chip-pulse .6s ease; }
+@keyframes chip-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.float-pts {
+  position: absolute; top: calc(96px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  z-index: 70; background: color-mix(in srgb, var(--lantern) 18%, var(--paper));
+  border: 1px solid var(--lantern); color: var(--ink); border-radius: 99px;
+  padding: 7px 16px; font-size: 13px; pointer-events: none;
+  animation: pts-up 1.8s ease forwards; white-space: nowrap;
+}
+@keyframes pts-up { 0% { opacity: 0; margin-top: 10px; } 15% { opacity: 1; margin-top: 0; } 75% { opacity: 1; } 100% { opacity: 0; margin-top: -26px; } }
+
+/* ── 落点涟漪 ── */
+.tap-ripple {
+  position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
+  border: 2px solid rgba(196,85,77,.7); pointer-events: none; z-index: 3;
+  animation: tapring .65s ease-out forwards;
+}
+@keyframes tapring { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
+
+/* ── 村务板 / 村志 / 升级卡 ── */
+.board-tabs { margin: 8px 0 4px; }
+.qrow .pts { flex: none; color: var(--lantern); font-size: 12px; margin: 0 6px; }
+.lore-card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; margin: 9px 0; }
+.lore-card b { font-size: 14px; color: var(--vermilion); display: block; margin-bottom: 5px; }
+.lore-card p { font-size: 13px; line-height: 1.9; color: var(--ink); }
+.lore-card.locked { color: var(--ink-dim); font-size: 12.5px; text-align: center; border-style: dashed; }
+.sheet.levelup { text-align: center; }
+.sheet.levelup .lu-spark { font-size: 40px; animation: breathe-glow 1.6s ease-in-out infinite; }
+.sheet.levelup .lu-name {
+  font-family: "Kaiti SC", "STKaiti", "Songti SC", serif; font-size: 34px; letter-spacing: 8px;
+  color: var(--vermilion); margin: 8px 0 10px; font-weight: 700;
+}

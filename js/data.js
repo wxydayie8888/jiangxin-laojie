@@ -13,6 +13,25 @@ window.DATA = {
     craftsman: { emoji: '🗝️', name: '工坊钥匙', desc: '我是手艺人，想在这条街开间工坊' }
   },
 
+  /* ── 双主角（故事圣经 第二节）── */
+  heroPick: { narrator: '巴士到站。和你一起下车的，还有一个人。', hint: '你是——' },
+  heroes: {
+    m: {
+      key: 'm', name: '沈砚', sprite: 'art/hero.png',
+      tag: '想找点真东西的人',
+      bio: '城里的短视频剪辑师。刷到一条没人看的视频——一个老人在补碗，配文「这就是手作的心跳」。他买了张票就来了。',
+      bag: ['camera', 'usb', 'seed'],         // 默认行囊建议（仍可改）
+      namePh: '给沈砚起个称呼，或就叫沈砚'
+    },
+    f: {
+      key: 'f', name: '林知夏', sprite: 'art/hero-f.png',
+      tag: '想帮老手艺被看见的人',
+      bio: '美院毕业的独立设计师，背着画箱来找「还没被用滥的纹样」。后来她懂了：好东西不能拿走，只能一起做。',
+      bag: ['brush', 'ruler', 'thread'],
+      namePh: '给林知夏起个称呼，或就叫林知夏'
+    }
+  },
+
   youthReg: {
     hello: '来了？路上黑，慢些走。',
     askName: '孩子，怎么称呼你？',

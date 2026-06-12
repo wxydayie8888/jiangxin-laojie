@@ -176,7 +176,7 @@
         S.role = role; Store.save();
         document.body.dataset.role = role;
         Sfx.chime();
-        go(role === 'youth' ? 'youthReg' : 'craftReg');
+        go(role === 'youth' ? 'heroPick' : 'craftReg');
       });
       cards.appendChild(c);
     });
@@ -184,15 +184,43 @@
     view.appendChild(pad);
   };
 
+  /* ── S1.5 选主角：沈砚 / 林知夏（故事圣经 第二节）── */
+  Scenes.heroPick = view => {
+    const HP = DATA.heroPick;
+    const pad = el('div', 'scene-pad');
+    pad.style.cssText = 'flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;overflow-y:auto;padding-top:16px;padding-bottom:16px;';
+    pad.appendChild(el('p', 'whisper', `<p>${HP.narrator}</p>`));
+    pad.appendChild(el('p', 'hint', HP.hint));
+    const row = el('div', 'hero-pick');
+    ['m', 'f'].forEach(k => {
+      const h = DATA.heroes[k];
+      const c = el('button', 'hero-card');
+      c.innerHTML = `<div class="hp-img"><img src="${h.sprite}" alt="${h.name}"></div>
+        <b>${h.name}</b><span class="tag">${h.tag}</span><span class="bio">${h.bio}</span>`;
+      c.addEventListener('click', () => {
+        S.youth.hero = k;
+        if (!S.youth.bagItems.length) S.youth.bagItems = h.bag.slice();
+        Store.save();
+        Sfx.chime();
+        go('youthReg');
+      });
+      row.appendChild(c);
+    });
+    pad.appendChild(row);
+    view.appendChild(pad);
+  };
+
   /* ── S2 青年登记：称呼 + 行囊 ── */
   Scenes.youthReg = async view => {
     const R = DATA.youthReg;
+    const hero = DATA.heroes[S.youth.hero] || DATA.heroes.m;
     await runDialog(view, [
       { text: R.hello, type: 'pause', ms: 600 },
       {
-        text: R.askName, type: 'input', ph: R.namePh, max: 8,
-        onAnswer: v => { S.youth.nickname = v; Store.save(); },
-        react: v => `${v}，好名字。`
+        text: R.askName, type: 'input', ph: hero.namePh, max: 8,
+        optional: true, skipText: '就叫' + hero.name,
+        onAnswer: v => { S.youth.nickname = v || hero.name; Store.save(); },
+        react: v => `${v || hero.name}，好名字。`
       },
       { text: R.bagGuide, type: 'pause', ms: 400 }
     ]);
@@ -904,7 +932,9 @@
     let hx = S.village.x, hy = S.village.y, tx = hx, ty = hy, pending = null, lastT = 0;
     const hero = el('div', 'hero');
     const flipper = el('div', 'flipper');
-    const hi = new Image(); hi.src = V.hero;
+    const hi = new Image();
+    hi.src = (DATA.heroes[S.youth.hero] || {}).sprite || V.hero;
+    hi.onerror = () => { hi.src = V.hero; };
     flipper.appendChild(hi);
     hero.appendChild(flipper);
     hero.appendChild(el('div', 'hshadow'));

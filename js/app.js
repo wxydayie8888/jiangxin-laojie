@@ -423,6 +423,48 @@
     }
   }
 
+  /* ── 送礼（星露谷式，但礼物会讲故事）── */
+  function giftSheet(ws) {
+    const ov = $('#overlay');
+    ov.hidden = false; ov.innerHTML = '';
+    const sheet = el('div', 'sheet');
+    sheet.appendChild(el('p', 'hint', DATA.relUi.giftPick + ' · 送给 ' + ws.npc.split(' · ').pop()));
+    if (!S.products.length) {
+      sheet.appendChild(el('p', 'small', DATA.relUi.giftEmpty));
+    } else {
+      const pl = el('div', 'product-list');
+      S.products.forEach((p, idx) => {
+        const srcWs = DATA.workshops.find(w => w.id === p.wsId);
+        const row = el('button', 'product-item');
+        row.style.cssText = 'width:100%;text-align:left;cursor:pointer;font-family:inherit;color:var(--ink);';
+        row.innerHTML = `<span class="e">${p.emoji}</span>${p.name}<span class="from">${srcWs.name}</span>`;
+        row.addEventListener('click', () => {
+          ov.hidden = true; ov.innerHTML = '';
+          let line;
+          if (p.wsId === ws.id) {
+            line = DATA.giftOwn.replace('{npc}', ws.npc.split(' · ').pop());
+          } else {
+            if (DATA.bonds[ws.id] === p.wsId) line = DATA.bondLines[ws.id + '_' + p.wsId];
+            else line = DATA.giftThanks[ws.id];
+            S.products.splice(idx, 1);
+            S.flags['gift_' + ws.id] = true;
+            Store.save();
+            gain('gift');
+          }
+          Sfx.chime();
+          askSheet(ws.emoji, line, { chips: ['🙂'] }, () => { go('workshop', ws.id); return null; });
+        });
+        pl.appendChild(row);
+      });
+      sheet.appendChild(pl);
+    }
+    const close = el('button', 'btn ghost', '收起来');
+    close.style.width = '100%';
+    close.addEventListener('click', () => { ov.hidden = true; ov.innerHTML = ''; });
+    sheet.appendChild(close);
+    ov.appendChild(sheet);
+  }
+
   /* ── 慢工盒子（策划案 14.2-③）── */
   function buildSlowBox(ws) {
     const def = DATA.slowwork[ws.id];
@@ -502,6 +544,21 @@
       flow.appendChild(el('div', 'action-card', ws.card.replace(/「(.+?)」/, '「<b>$1</b>」')));
       const kept = S.youth.keepsakes.includes(id);
       flow.appendChild(el('p', 'small', kept ? `${ws.keepsake.emoji} ${ws.keepsake.name}，在你的行囊里。` : '上次你笑着说，心领了。'));
+
+      // 轨迹系：三层心事（交情 = 灯 + 回信 + 送礼）
+      const rel = 1 + (S.letters.delivered.includes(id) ? 1 : 0) + (S.flags['gift_' + id] ? 1 : 0);
+      const npcName = ws.npc.split(' · ').pop();
+      const relBox = el('div', 'action-card rel-box');
+      let rh = `<div class="small" style="margin-bottom:6px">${DATA.relUi.cupTitle} ${DATA.relUi.cup.repeat(rel)}</div>`;
+      if (rel >= 2) rh += `<p>「${DATA.talks[id][0]}」</p>`;
+      if (rel >= 3) rh += `<p style="margin-top:7px;color:var(--vermilion)">「${DATA.talks[id][1]}」</p>`;
+      if (rel < 3) rh += `<div class="small" style="margin-top:7px">${DATA.relUi.hint.replace('{npc}', npcName)}</div>`;
+      relBox.innerHTML = rh;
+      flow.appendChild(relBox);
+      const giftBtn = el('button', 'btn ghost', DATA.relUi.giftBtn);
+      giftBtn.addEventListener('click', () => giftSheet(ws));
+      flow.appendChild(giftBtn);
+
       flow.appendChild(buildSlowBox(ws));
       const back = el('button', 'btn ghost', DATA.misc.backStreet);
       back.addEventListener('click', () => go('village'));
@@ -512,6 +569,10 @@
     }
 
     const stage = el('div', 'stage');
+    // 内景成稿铺底（加载失败自动退回纯色舞台）
+    const inside = new Image();
+    inside.src = 'art/inside-' + id + '.jpg';
+    inside.onload = () => { stage.classList.add('has-art'); stage.style.backgroundImage = `url(${inside.src})`; };
     view.appendChild(stage);
 
     Interactions[ws.key](stage, ws, async () => {
@@ -1132,7 +1193,7 @@
       } else if (hero.classList.contains('moving')) {
         hero.classList.remove('moving');
         S.village.x = hx; S.village.y = hy; Store.save();
-        if (pending) { const p = pending; pending = null; p.npcChat ? chatNpc(p.npcChat, p.chIdx) : act(p); }
+        if (pending) { const p = pending; pending = null; p.duet ? playDuet(p.duet) : p.npcChat ? chatNpc(p.npcChat, p.chIdx) : act(p); }
       }
     }
     // 双驱动：rAF 保证可见时丝滑，setInterval 兜底后台节流（真机切后台也能走完）
@@ -1208,8 +1269,17 @@
     });
 
     function chatNpc(npc, ci) {
+      // 轨迹系：先议论你最近做过的大事（每件事每人只说一次）
+      const seen = S.reactSeen[npc.key] || (S.reactSeen[npc.key] = []);
+      const reacts = DATA.npcReacts[npc.key] || {};
+      const miles = [];
+      if (S.youth.ceremonyDone) miles.push('ceremony');
+      if (S.ordersDone.length) miles.push('ship');
+      if (S.youth.goldStamps.length) miles.push('gold');
+      const freshM = miles.find(m => reacts[m] && !seen.includes(m));
       const pool = npc.lines[Math.min(ci, npc.lines.length - 1)];
       let line = pool[Math.floor(Math.random() * pool.length)];
+      if (freshM) { line = reacts[freshM]; seen.push(freshM); Store.save(); }
       const isF = S.youth.hero === 'f';
       line = line.replace(/哥哥\/姐姐/g, isF ? '姐姐' : '哥哥')
                  .replace(/哥\/姐/g, isF ? '姐' : '哥')
@@ -1220,6 +1290,58 @@
         if (firstThisCh) { arr.push(ci); Store.save(); gain('chat'); }
         return null;
       });
+    }
+
+    // ── 轨迹系：双人旁听事件（羁绊落地）──
+    DATA.duets.forEach(d => {
+      if (!d.need.every(n => S.youth.stamps.includes(n))) return;
+      if (S.flags['duet_' + d.id]) return;
+      const ns = V.spots.find(sp => sp.key === d.near);
+      const db = el('button', 'npc-chip duet');
+      db.innerHTML = `<span class="e">👂</span><span>${d.title.replace('👂 ', '')}</span>`;
+      db.style.left = Math.max(0.03, ns.x - 0.02) * V.mapW + 'px';
+      db.style.top = Math.min(0.93, ns.y + 0.1) * V.mapH + 'px';
+      db.addEventListener('pointerdown', e => e.stopPropagation());
+      db.addEventListener('click', e => {
+        e.stopPropagation();
+        const p = clampPt(ns.x * V.mapW, (ns.y + 0.1) * V.mapH);
+        if (Math.hypot(hx - p[0], hy - p[1]) < 120) { playDuet(d); return; }
+        tx = p[0]; ty = p[1]; pending = { duet: d };
+        Sfx.knock();
+      });
+      wrap.appendChild(db);
+    });
+
+    function playDuet(d) {
+      const ov = $('#overlay');
+      ov.hidden = false; ov.innerHTML = '';
+      const sheet = el('div', 'sheet');
+      sheet.appendChild(el('p', 'hint', d.title));
+      const lw = el('div', 'duet-lines');
+      sheet.appendChild(lw);
+      let i = 0;
+      const btn = el('button', 'btn primary', DATA.duetUi.next);
+      btn.style.width = '100%';
+      function step() {
+        if (i < d.lines.length) {
+          const [who, text] = d.lines[i++];
+          lw.appendChild(el('div', 'duet-line', `<b>${who}</b>${text}`));
+          Sfx.paper();
+          if (i === d.lines.length) btn.textContent = DATA.duetUi.end;
+        } else {
+          S.flags['duet_' + d.id] = true;
+          S.products.push({ wsId: d.reward.wsId, name: d.reward.name, emoji: d.reward.emoji, at: Date.now() });
+          Store.save();
+          ov.hidden = true; ov.innerHTML = '';
+          gain('duet');
+          toast(DATA.duetUi.got + ' ' + d.reward.emoji + ' ' + d.reward.name, 4200);
+          go('village');
+        }
+      }
+      btn.addEventListener('click', step);
+      step();
+      sheet.appendChild(btn);
+      ov.appendChild(sheet);
     }
 
     function act(s) {

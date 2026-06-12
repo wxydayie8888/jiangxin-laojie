@@ -692,3 +692,19 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
   font-family: "Kaiti SC", "STKaiti", "Songti SC", serif; font-size: 34px; letter-spacing: 8px;
   color: var(--vermilion); margin: 8px 0 10px; font-weight: 700;
 }
+
+/* ── 轨迹系：旁听 / 心事 ── */
+.npc-chip.duet { border-color: var(--lantern); background: color-mix(in srgb, var(--lantern) 14%, var(--paper)); animation: breathe-glow 2.2s ease-in-out infinite; }
+.duet-lines { display: flex; flex-direction: column; gap: 9px; padding: 10px 0; }
+.duet-line { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: 14px; line-height: 1.7; animation: bubble-in .35s var(--ease); }
+.duet-line b { display: block; font-size: 12px; color: var(--bamboo); margin-bottom: 3px; }
+.rel-box p { font-size: 14px; line-height: 1.8; }
+
+/* ── 工坊内景成稿 ── */
+.stage.has-art { background-size: cover; background-position: center; }
+.stage.has-art::before { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 30%, transparent); pointer-events: none; }
+.stage.has-art .stage-entry, .stage.has-art .stage-guide {
+  background: color-mix(in srgb, var(--panel) 84%, transparent);
+  border-radius: 12px; padding: 8px 14px; left: 12px; right: 12px;
+}
+.stage.has-art .mono-lines p { text-shadow: 0 1px 10px var(--bg), 0 0 18px var(--bg); font-weight: 600; }

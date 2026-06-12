@@ -40,6 +40,8 @@ window.Store = (function () {
     slowCount: {},                          // wsId -> 开慢工次数（悬赏 s7）
     coins: 0,                               // 铜板（经营环货币）
     reactSeen: {},                          // npcKey -> 已说过的事件议论
+    lastChIdx: -1,                          // 已展示过的章节卡
+    lastMicroDay: '',                       // 街角小事：每天最多一件
     ordersDone: [],                         // 已发货订单 id
     shopLv: {}                              // wsId -> 修缮等级（0-2，加速慢工）
   });

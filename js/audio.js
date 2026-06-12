@@ -104,6 +104,8 @@ window.Sfx = (function () {
     arpeggio() { const i = Math.floor(Math.random() * 4); [0, 1, 2].forEach(k => tone(PENTA[i + k], 0.8, 'sine', 0.35, k * 0.12)); },
     /* 盖章 */
     stamp() { tone(146, 0.12, 'triangle', 0.6); noise(0.05, 0.1); },
+    /* 脚步：石板路轻响（左右脚音高微差）*/
+    footstep(alt) { tone(alt ? 174 : 162, 0.04, 'triangle', 0.10); noise(0.025, 0.04); },
 
     /* ── 工坊手作声纹（策划案 15 章「手作声纹」，一期合成模拟）── */
     carve() { tone(820, 0.05, 'triangle', 0.3); noise(0.04, 0.12); },          // 刻木

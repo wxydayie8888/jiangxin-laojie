@@ -423,6 +423,15 @@
     }
   }
 
+  /* ── 章节卡：半屏卷轴仪式 ── */
+  function showChapterCard(cc) {
+    const card = el('div', 'chapter-card');
+    card.innerHTML = `<div class="cc-inner"><div class="cc-name">${cc.name}</div><div class="cc-sub">${cc.sub}</div><div class="cc-tap">${DATA.chapterTap}</div></div>`;
+    card.addEventListener('pointerdown', () => { card.classList.add('out'); setTimeout(() => card.remove(), 450); });
+    document.getElementById('app').appendChild(card);
+    Sfx.chime();
+  }
+
   /* ── 送礼（星露谷式，但礼物会讲故事）── */
   function giftSheet(ws) {
     const ov = $('#overlay');
@@ -628,6 +637,8 @@
     const lantern = el('div', 'big-lantern');
     const wick = el('div', 'wick');
     lantern.appendChild(wick);
+    const ring = el('div', 'hold-ring');
+    lantern.appendChild(ring);
     const hint = el('p', 'hint', DATA.ceremony.holdHint);
     wrap.appendChild(lantern); wrap.appendChild(hint);
 
@@ -638,6 +649,7 @@
         progress = Math.min(1, progress + (now - last) / 3000); // 长按3秒
         last = now;
         wick.style.opacity = progress;
+        ring.style.setProperty('--p', progress * 100);
         if (progress >= 1) complete();
       }
     }, 50);
@@ -1160,6 +1172,7 @@
     // 主角
     if (!S.village.x) { S.village.x = V.spawn[0] * V.mapW; S.village.y = V.spawn[1] * V.mapH; }
     let hx = S.village.x, hy = S.village.y, tx = hx, ty = hy, pending = null, lastT = 0;
+    let stepDist = 0, stepAlt = false;
     const hero = el('div', 'hero');
     const flipper = el('div', 'flipper');
     const hi = new Image();
@@ -1174,11 +1187,14 @@
     const clampPt = (x, y) => [Math.max(40, Math.min(V.mapW - 40, x)), Math.max(bandY[0], Math.min(bandY[1], y))];
 
     function place() { hero.style.left = hx + 'px'; hero.style.top = hy + 'px'; }
-    function camera() {
+    let camX = null, camY = null;
+    function camera(snap) {
       const vw = vp.clientWidth || 1, vh = vp.clientHeight || 1;
-      const cx = Math.max(0, Math.min(V.mapW - vw, hx - vw / 2));
-      const cy = Math.max(0, Math.min(V.mapH - vh, hy - vh * 0.58));
-      wrap.style.transform = `translate(${-cx}px,${-cy}px)`;
+      const tx2 = Math.max(0, Math.min(V.mapW - vw, hx - vw / 2));
+      const ty2 = Math.max(0, Math.min(V.mapH - vh, hy - vh * 0.58));
+      if (camX === null || snap) { camX = tx2; camY = ty2; }
+      else { camX += (tx2 - camX) * 0.14; camY += (ty2 - camY) * 0.14; }   // 镜头柔性追赶
+      wrap.style.transform = `translate(${-camX}px,${-camY}px)`;
     }
     function step(now) {
       const dt = lastT ? Math.min(0.05, (now - lastT) / 1000) : 0;
@@ -1189,8 +1205,13 @@
         if (Math.abs(dx) > 2) hero.classList.toggle('flip', dx < 0);
         const adv = Math.min(d, V.speed * dt);
         hx += dx / d * adv; hy += dy / d * adv;
+        stepDist += adv;
+        if (stepDist > 52) { stepDist = 0; stepAlt = !stepAlt; Sfx.footstep(stepAlt); }
         place(); camera();
-      } else if (hero.classList.contains('moving')) {
+      } else {
+        camera();   // 停下后镜头继续缓动到位
+      }
+      if (d <= 4 && hero.classList.contains('moving')) {
         hero.classList.remove('moving');
         S.village.x = hx; S.village.y = hy; Store.save();
         if (pending) { const p = pending; pending = null; p.duet ? playDuet(p.duet) : p.npcChat ? chatNpc(p.npcChat, p.chIdx) : act(p); }
@@ -1203,7 +1224,7 @@
       if (performance.now() - lastT > 120) step(performance.now());
     }, 60);
     place();
-    requestAnimationFrame(() => { camera(); requestAnimationFrame(raf); });
+    requestAnimationFrame(() => { camera(true); requestAnimationFrame(raf); });
 
     // 点地面行走
     vp.addEventListener('pointerdown', e => {
@@ -1223,6 +1244,10 @@
       const shopId = s.key.startsWith('shop') ? +s.key.slice(4) : null;
       const spot = el('button', 'vspot' + (shopId && S.youth.stamps.includes(shopId) ? ' lit' : ''));
       let name = s.name;
+      if (s.key === 'granny') {
+        if (S.youth.stamps.length >= 10 && S.youth.ceremonyDone && !S.flags.handover) { name = DATA.handover.spotName; spot.classList.add('lit'); }
+        else if (S.flags.handover) name = DATA.handover.grannySpotAfter;
+      }
       if (s.key === 'mail') { const n = Store.unreadLetters().length; if (n) name += ' · ' + n; }
       if (shopId && S.shopLv[shopId]) name += ' ' + '★'.repeat(S.shopLv[shopId]);
       if (shopId && Store.slowState(shopId).status === 'ready') name += ' ✨';
@@ -1312,6 +1337,41 @@
       wrap.appendChild(db);
     });
 
+    function playHandover() {
+      const H = DATA.handover;
+      const ov = $('#overlay');
+      ov.hidden = false; ov.innerHTML = '';
+      const sheet = el('div', 'sheet');
+      sheet.appendChild(el('p', 'hint', '🏮 守街人的交接'));
+      const lw = el('div', 'duet-lines');
+      sheet.appendChild(lw);
+      let i = 0;
+      const btn = el('button', 'btn primary', '……');
+      btn.style.width = '100%';
+      function step() {
+        if (i < H.lines.length) {
+          const [who, text] = H.lines[i++];
+          lw.appendChild(el('div', 'duet-line', `<b>${who}</b>${text}`));
+          Sfx.paper();
+          if (i === H.lines.length) { btn.textContent = '接过灯'; Sfx.ceremony(); }
+        } else {
+          S.flags.handover = true;
+          Store.save();
+          const r = Store.addPoints(H.gainPts);
+          ov.hidden = true; ov.innerHTML = '';
+          pointsFx(H.gainPts, H.gainWhy);
+          updateTopbar();
+          toast(H.done, 4600);
+          if (r.leveled) setTimeout(() => levelUpCard(r.after[1]), 900);
+          setTimeout(() => go('village'), 1200);
+        }
+      }
+      btn.addEventListener('click', step);
+      step();
+      sheet.appendChild(btn);
+      ov.appendChild(sheet);
+    }
+
     function playDuet(d) {
       const ov = $('#overlay');
       ov.hidden = false; ov.innerHTML = '';
@@ -1347,9 +1407,12 @@
     function act(s) {
       if (s.key === 'board') { showBoard(1); return; }
       if (s.key === 'granny') {
+        // 终章：十灯全亮且已仪式 → 守街人的交接（暗线高潮）
+        if (S.youth.stamps.length >= 10 && S.youth.ceremonyDone && !S.flags.handover) { playHandover(); return; }
         const first = !S.youth.metGranny;
         if (first) { S.youth.metGranny = true; Store.save(); }
-        askSheet('👵', first ? DATA.village.grannyHello : DATA.village.grannyAgain[Math.floor(Math.random() * DATA.village.grannyAgain.length)],
+        const pool = S.flags.handover ? DATA.village.grannyAfter : DATA.village.grannyAgain;
+        askSheet('👵', first ? DATA.village.grannyHello : pool[Math.floor(Math.random() * pool.length)],
           { chips: ['哎，阿婆'] },
           () => { setTimeout(() => go('village'), 600); return first ? DATA.village.grannyMet : null; });
       }
@@ -1362,6 +1425,19 @@
 
     // HUD：任务横幅 + 操作提示（先结算再渲染，计数才准）
     evaluateQuests(true);
+    // 章节卡：翻开新的一卷
+    if (chIdx > (S.lastChIdx ?? -1)) {
+      S.lastChIdx = chIdx; Store.save();
+      const cc = DATA.chapterCards[chIdx];
+      if (cc) setTimeout(() => showChapterCard(cc), 600);
+    }
+    // 街角小事：每天进村第一眼的一点不一样
+    const today = new Date().toDateString();
+    if (S.lastMicroDay !== today) {
+      S.lastMicroDay = today; Store.save();
+      const me = DATA.microEvents[Math.floor(Math.random() * DATA.microEvents.length)];
+      setTimeout(() => toast(me, 4200), 2600);
+    }
     const q = activeQuest();
     const banner = el('button', 'quest-banner');
     banner.innerHTML = q

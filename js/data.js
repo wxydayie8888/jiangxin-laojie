@@ -394,24 +394,45 @@ window.DATA = {
     speed: 235,               // px/s
     listDoor: '📜 一览',
     backDoor: '🏞 回到村景',
-    spots: [
-      { key: 'granny',  emoji: '👵', name: '阿婆',     x: 0.035, y: 0.72 },
-      { key: 'board',   emoji: '📋', name: '村务板',   x: 0.058, y: 0.84 },
-      { key: 'mail',    emoji: '📮', name: '信箱',     x: 0.072, y: 0.76 },
-      { key: 'shop1',   emoji: '🍵', name: '老茶馆',   x: 0.115, y: 0.68 },
-      { key: 'shop2',   emoji: '🪵', name: '木作堂',   x: 0.185, y: 0.72 },
-      { key: 'shop3',   emoji: '🏺', name: '陶泥坊',   x: 0.255, y: 0.68 },
-      { key: 'shop4',   emoji: '🧶', name: '蓝白坊',   x: 0.325, y: 0.72 },
-      { key: 'lantern', emoji: '🏮', name: '主灯笼',   x: 0.40,  y: 0.80 },
-      { key: 'shop5',   emoji: '🧺', name: '直播间',   x: 0.455, y: 0.68 },
-      { key: 'swing',   emoji: '🪑', name: '秋千',     x: 0.515, y: 0.82 },
-      { key: 'shop6',   emoji: '🪡', name: '联名社',   x: 0.575, y: 0.72 },
-      { key: 'shop7',   emoji: '🖼️', name: '慢时光',  x: 0.645, y: 0.68 },
-      { key: 'shop8',   emoji: '🗺️', name: '驿站铺',  x: 0.715, y: 0.72 },
-      { key: 'shop9',   emoji: '📢', name: '声浪塔',   x: 0.80,  y: 0.66 },
-      { key: 'shop10',  emoji: '⛵', name: '远航码头', x: 0.875, y: 0.72 },
-      { key: 'station', emoji: '🧭', name: '去村里',   x: 0.945, y: 0.76 }
-    ],
+    firstDistrict: 'jinzhou',
+    districts: {
+      jinzhou: {
+        name: '锦昼街', map: 'art/village.jpg', mapW: 2800, mapH: 1188, walkBand: [0.81, 0.94],
+        spots: [
+          { key: 'granny',  emoji: '👵', name: '阿婆',   x: 0.05,  y: 0.70 },
+          { key: 'board',   emoji: '📋', name: '村务板', x: 0.085, y: 0.82 },
+          { key: 'mail',    emoji: '📮', name: '信箱',   x: 0.12,  y: 0.74 },
+          { key: 'shop1',   emoji: '🍵', name: '老茶馆', x: 0.22,  y: 0.66 },
+          { key: 'shop2',   emoji: '🪵', name: '木作堂', x: 0.36,  y: 0.70 },
+          { key: 'shop3',   emoji: '🏺', name: '陶泥坊', x: 0.50,  y: 0.66 },
+          { key: 'shop4',   emoji: '🧶', name: '蓝白坊', x: 0.64,  y: 0.70 },
+          { key: 'lantern', emoji: '🏮', name: '主灯笼', x: 0.78,  y: 0.80 },
+          { key: 'go_market', exit: true, to: 'market', emoji: '🪧', name: '去市集广场', x: 0.95, y: 0.84, enter: [0.07, 0.86] }
+        ]
+      },
+      market: {
+        name: '市集广场', map: 'art/town-market.jpg', mapW: 2400, mapH: 1018, walkBand: [0.72, 0.92],
+        spots: [
+          { key: 'go_jinzhou', exit: true, to: 'jinzhou', emoji: '🪧', name: '回锦昼街', x: 0.04, y: 0.84, enter: [0.90, 0.88] },
+          { key: 'shop5', emoji: '🧺', name: '直播间', x: 0.24, y: 0.62 },
+          { key: 'swing', emoji: '🪑', name: '秋千',   x: 0.37, y: 0.86 },
+          { key: 'shop6', emoji: '🪡', name: '联名社', x: 0.50, y: 0.62 },
+          { key: 'shop7', emoji: '🖼️', name: '慢时光', x: 0.66, y: 0.62 },
+          { key: 'go_wharf', exit: true, to: 'wharf', emoji: '🪧', name: '去码头水巷', x: 0.96, y: 0.84, enter: [0.07, 0.86] }
+        ]
+      },
+      wharf: {
+        name: '码头水巷', map: 'art/town-wharf.jpg', mapW: 2400, mapH: 1018, walkBand: [0.74, 0.92],
+        spots: [
+          { key: 'go_market2', exit: true, to: 'market', emoji: '🪧', name: '回市集广场', x: 0.04, y: 0.84, enter: [0.90, 0.88] },
+          { key: 'shop8',   emoji: '🗺️', name: '驿站铺',   x: 0.26, y: 0.66 },
+          { key: 'shop9',   emoji: '📢', name: '声浪塔',   x: 0.44, y: 0.62 },
+          { key: 'shop10',  emoji: '⛵', name: '远航码头', x: 0.62, y: 0.68 },
+          { key: 'station', emoji: '🧭', name: '去村里',   x: 0.82, y: 0.74 }
+        ]
+      }
+    },
+    districtOrder: ['jinzhou', 'market', 'wharf'],
     grannyHello: '来了？这条街老啦，灯也熄了不少。你愿意走走，它就愿意亮。',
     grannyMet: '阿婆记住你了。',
     grannyAgain: ['路上慢些，砖缝里有青苔。', '哪间工坊的灯还没亮，去敲敲门。', '猫今天心情不错，秋千那边。', '驿站的木板上，又添了新去处。'],
@@ -463,7 +484,7 @@ window.DATA = {
      lines[章节0-3]；老韩只在晨午出现；豆豆来回跑；墨团蹲在任务目标旁 */
   npcs: [
     {
-      key: 'afu', emoji: '🍵', sprite: 'art/np-afu.png', name: '茶博士阿福', x: 0.135, y: 0.80,
+      key: 'afu', emoji: '🍵', sprite: 'art/np-afu.png', name: '茶博士阿福', district: 'jinzhou', x: 0.16, y: 0.80,
       lines: [
         ['哥/姐第一次来吧？我跟你唠唠：这条街十间铺子，灯全熄了就剩阿婆那盏。', '我叔公吴伯就在茶馆里。他那手锔瓷，绝了——可惜没人看。', '我寻思把茶馆做成那种、那种"网红打卡点"？叔公拿茶巾抽我。'],
         ['你把茶馆的灯点了？！我叔公嘴上没说，茶给你续的都是明前的。', '街上有灯了，晚上走路都敢抬头了。', '我跟叔公说直播，他问我"播啥，播我补碗？"——欸对啊！播补碗啊！'],
@@ -472,7 +493,7 @@ window.DATA = {
       ]
     },
     {
-      key: 'zhaobo', emoji: '♟️', sprite: 'art/np-zhaobo.png', name: '村长赵伯', x: 0.62, y: 0.82,
+      key: 'zhaobo', emoji: '♟️', sprite: 'art/np-zhaobo.png', name: '村长赵伯', district: 'market', x: 0.42, y: 0.86,
       lines: [
         ['折腾啥呢年轻人，这街都熄了十年了……能成？', '（赵伯盯着棋盘没抬头）走过路过，别踩我棋子。', '城里来的？城里好啊。好就别回来受这个罪。'],
         ['哟，茶馆的灯亮了？……巧了，我屋里正好有几间空房，回头、回头你要是有朋友来，便宜租。', '（他偷偷把"危房"的牌子从老屋上摘了）', '别误会，我就是觉得，街上有点灯，下棋看得清。'],
@@ -481,7 +502,7 @@ window.DATA = {
       ]
     },
     {
-      key: 'doudou', emoji: '🪁', sprite: 'art/np-doudou.png', name: '豆豆', x: 0.30, y: 0.84, patrol: 120,
+      key: 'doudou', emoji: '🪁', sprite: 'art/np-doudou.png', name: '豆豆', district: 'jinzhou', x: 0.44, y: 0.86, patrol: 120,
       lines: [
         ['哥哥/姐姐！你是来把爷爷奶奶带火的吗？', '我奶奶是秀英婶！她捏的小狗可像我家阿黄了！', '街上好久没来新人了，你能多待几天吗？'],
         ['你点了奶奶的窑吗？点了的话她今晚会做红烧肉！', '我同桌说村里没意思。我说有意思！有哥哥/姐姐在点灯！', '嘘——我看见吴伯爷爷对着那只碗说话。别告诉别人哦。'],
@@ -490,7 +511,7 @@ window.DATA = {
       ]
     },
     {
-      key: 'laohan', emoji: '📦', sprite: 'art/np-laohan.png', name: '快递员老韩', x: 0.745, y: 0.84, dayparts: ['morning', 'noon'],
+      key: 'laohan', emoji: '📦', sprite: 'art/np-laohan.png', name: '快递员老韩', district: 'wharf', x: 0.52, y: 0.86, dayparts: ['morning', 'noon'],
       lines: [
         ['让让让让——哟，生面孔？这街可有日子没进过件儿了。', '我这三轮一天就进村一趟。多数时候，空着来空着走。', '要寄东西吱声，我顺路。'],
         ['今儿有件的！老周的竹篮，发往杭州！头一单呐！', '街上有灯了？得，晚上送件不用打手电了。', '陈师傅问我"网上卖木雕要啥手续"——嘿，老头开窍了。'],

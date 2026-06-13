@@ -1175,21 +1175,33 @@
   /* ══ 可行走村庄：大地图 + 主角 + 镜头跟随（V2.1）══ */
   Scenes.village = view => {
     const V = DATA.village;
+    const cur = S.village.district || V.firstDistrict;
+    const dist = V.districts[cur];
+    const mapW = dist.mapW, mapH = dist.mapH, walkBand = dist.walkBand, mapSrc = dist.map;
+    const spots = dist.spots;
+    const spotDistrict = {};
+    V.districtOrder.forEach(dk => V.districts[dk].spots.forEach(sp => { spotDistrict[sp.key] = dk; }));
+    function switchDistrict(to, enter) {
+      const td = V.districts[to];
+      S.village.district = to;
+      S.village.x = enter[0] * td.mapW; S.village.y = enter[1] * td.mapH;
+      Store.save(); Sfx.chime(); go('village');
+    }
     const dpNow = Store.daypart();
     if (!S.visitParts.includes(dpNow)) { S.visitParts.push(dpNow); Store.save(); }
     const vp = el('div', 'village-vp');
     view.appendChild(vp);
     const wrap = el('div', 'vmap-wrap');
-    wrap.style.cssText = `width:${V.mapW}px;height:${V.mapH}px;`;
+    wrap.style.cssText = `width:${mapW}px;height:${mapH}px;`;
     const mapImg = new Image();
     mapImg.className = 'vmap';
-    mapImg.src = V.map;
-    mapImg.style.cssText = `width:${V.mapW}px;height:${V.mapH}px;`;
+    mapImg.src = mapSrc;
+    mapImg.style.cssText = `width:${mapW}px;height:${mapH}px;`;
     wrap.appendChild(mapImg);
     vp.appendChild(wrap);
 
     // 主角
-    if (!S.village.x) { S.village.x = V.spawn[0] * V.mapW; S.village.y = V.spawn[1] * V.mapH; }
+    if (!S.village.x) { S.village.x = 0.07 * mapW; S.village.y = (walkBand[0] + walkBand[1]) / 2 * mapH; }
     let hx = S.village.x, hy = S.village.y, tx = hx, ty = hy, pending = null, lastT = 0;
     let stepDist = 0, stepAlt = false;
     const hero = el('div', 'hero');
@@ -1205,8 +1217,8 @@
     hero.appendChild(el('div', 'hshadow'));
     wrap.appendChild(hero);
 
-    const bandY = [V.walkBand[0] * V.mapH, V.walkBand[1] * V.mapH];
-    const clampPt = (x, y) => [Math.max(40, Math.min(V.mapW - 40, x)), Math.max(bandY[0], Math.min(bandY[1], y))];
+    const bandY = [walkBand[0] * mapH, walkBand[1] * mapH];
+    const clampPt = (x, y) => [Math.max(40, Math.min(mapW - 40, x)), Math.max(bandY[0], Math.min(bandY[1], y))];
 
     function place() {
       hero.style.left = hx + 'px'; hero.style.top = hy + 'px';
@@ -1219,8 +1231,8 @@
     let camX = null, camY = null;
     function camera(snap) {
       const vw = vp.clientWidth || 1, vh = vp.clientHeight || 1;
-      const tx2 = Math.max(0, Math.min(V.mapW - vw, hx - vw / 2));
-      const ty2 = Math.max(0, Math.min(V.mapH - vh, hy - vh * 0.58));
+      const tx2 = Math.max(0, Math.min(mapW - vw, hx - vw / 2));
+      const ty2 = Math.max(0, Math.min(mapH - vh, hy - vh * 0.58));
       if (camX === null || snap) { camX = tx2; camY = ty2; }
       else { camX += (tx2 - camX) * 0.14; camY += (ty2 - camY) * 0.14; }   // 镜头柔性追赶
       wrap.style.transform = `translate(${-camX}px,${-camY}px)`;
@@ -1269,10 +1281,10 @@
 
     // 热点木牌
     const targetKey = questTargetKey();
-    V.spots.forEach(s => {
+    spots.forEach(s => {
       if (s.key === 'lantern' && (S.youth.stamps.length < 3 || S.youth.ceremonyDone)) return;
       const shopId = s.key.startsWith('shop') ? +s.key.slice(4) : null;
-      const spot = el('button', 'vspot' + (shopId && S.youth.stamps.includes(shopId) ? ' lit' : ''));
+      const spot = el('button', 'vspot' + (shopId && S.youth.stamps.includes(shopId) ? ' lit' : '') + (s.exit ? ' vexit' : ''));
       let name = s.name;
       if (s.key === 'granny') {
         if (S.youth.stamps.length >= 10 && S.youth.ceremonyDone && !S.flags.handover) { name = DATA.handover.spotName; spot.classList.add('lit'); }
@@ -1282,12 +1294,12 @@
       if (shopId && S.shopLv[shopId]) name += ' ' + '★'.repeat(S.shopLv[shopId]);
       if (shopId && Store.slowState(shopId).status === 'ready') name += ' ✨';
       spot.innerHTML = `${targetKey === s.key ? '<span class="qmark">❗</span>' : ''}<span class="plaque">${s.emoji} ${name}</span><span class="pin"></span>`;
-      spot.style.left = s.x * V.mapW + 'px';
-      spot.style.top = s.y * V.mapH + 'px';
+      spot.style.left = s.x * mapW + 'px';
+      spot.style.top = s.y * mapH + 'px';
       spot.addEventListener('pointerdown', e => e.stopPropagation());
       spot.addEventListener('click', e => {
         e.stopPropagation();
-        const p = clampPt(s.x * V.mapW, s.y * V.mapH + 24);
+        const p = clampPt(s.x * mapW, s.y * mapH + 24);
         if (Math.hypot(hx - p[0], hy - p[1]) < 100) { act(s); return; }
         tx = p[0]; ty = p[1]; pending = s;
         Sfx.knock();
@@ -1299,25 +1311,33 @@
     const chapters = [...new Set(DATA.quests.map(q => q.ch))];
     const aq = activeQuest();
     const chIdx = aq ? Math.max(0, chapters.indexOf(aq.ch)) : chapters.length - 1;
-    DATA.npcs.forEach(npc => {
+    DATA.npcs.filter(npc => npc.follow || !npc.district || npc.district === cur).forEach(npc => {
       if (npc.dayparts && !npc.dayparts.includes(Store.daypart())) return;
       let nx = npc.x, ny = npc.y;
       if (npc.follow === 'target') {
         const tk = questTargetKey();
-        const ts = V.spots.find(sp => sp.key === tk) || V.spots.find(sp => sp.key === 'swing');
+        let ts;
+        if (tk && spotDistrict[tk] === cur) ts = spots.find(sp => sp.key === tk);   // 目标在本区：蹲它旁边
+        else if (tk && spotDistrict[tk] && spotDistrict[tk] !== cur) ts = spots.find(sp => sp.exit);  // 目标在别处：蹲在出口旁指路
+        ts = ts || spots.find(sp => !sp.exit);
         nx = Math.min(0.96, ts.x + 0.02); ny = Math.min(0.92, ts.y + 0.08);
       }
       const nb = el('button', (npc.sprite ? 'npc-fig-wrap' : 'npc-chip') + (npc.patrol ? ' patrol' : ''));
       nb.innerHTML = npc.sprite
         ? `<img class="npc-fig" src="${npc.sprite}"><span class="npc-name">${npc.name}</span>`
         : `<span class="e">${npc.emoji}</span><span>${npc.name}</span>`;
-      nb.style.left = nx * V.mapW + 'px';
-      nb.style.top = ny * V.mapH + 'px';
+      nb.style.left = nx * mapW + 'px';
+      nb.style.top = ny * mapH + 'px';
+      // 近大远小：与主角同一套景深，只缩立绘本身（名牌/巡逻动画不受影响）
+      if (npc.sprite || npc.emoji) {
+        const f = (ny * mapH - bandY[0]) / ((bandY[1] - bandY[0]) || 1);
+        nb.style.setProperty('--ds', Math.max(0.78, Math.min(1.06, 0.82 + 0.22 * f)).toFixed(3));
+      }
       if (npc.patrol) nb.style.setProperty('--patrol', npc.patrol + 'px');
       nb.addEventListener('pointerdown', e => e.stopPropagation());
       nb.addEventListener('click', e => {
         e.stopPropagation();
-        const p = clampPt(nx * V.mapW, ny * V.mapH + 12);
+        const p = clampPt(nx * mapW, ny * mapH + 12);
         if (Math.hypot(hx - p[0], hy - p[1]) < 110) { chatNpc(npc, chIdx); return; }
         tx = p[0]; ty = p[1]; pending = { npcChat: npc, chIdx };
         Sfx.knock();
@@ -1351,17 +1371,18 @@
 
     // ── 轨迹系：双人旁听事件（羁绊落地）──
     DATA.duets.forEach(d => {
+      if (spotDistrict[d.near] !== cur) return;   // 旁听事件只在其所在街区出现
       if (!d.need.every(n => S.youth.stamps.includes(n))) return;
       if (S.flags['duet_' + d.id]) return;
-      const ns = V.spots.find(sp => sp.key === d.near);
+      const ns = spots.find(sp => sp.key === d.near);
       const db = el('button', 'npc-chip duet');
       db.innerHTML = `<span class="e">👂</span><span>${d.title.replace('👂 ', '')}</span>`;
-      db.style.left = Math.max(0.03, ns.x - 0.02) * V.mapW + 'px';
-      db.style.top = Math.min(0.93, ns.y + 0.1) * V.mapH + 'px';
+      db.style.left = Math.max(0.03, ns.x - 0.02) * mapW + 'px';
+      db.style.top = Math.min(0.93, ns.y + 0.1) * mapH + 'px';
       db.addEventListener('pointerdown', e => e.stopPropagation());
       db.addEventListener('click', e => {
         e.stopPropagation();
-        const p = clampPt(ns.x * V.mapW, (ns.y + 0.1) * V.mapH);
+        const p = clampPt(ns.x * mapW, (ns.y + 0.1) * mapH);
         if (Math.hypot(hx - p[0], hy - p[1]) < 120) { playDuet(d); return; }
         tx = p[0]; ty = p[1]; pending = { duet: d };
         Sfx.knock();
@@ -1437,6 +1458,7 @@
     }
 
     function act(s) {
+      if (s.exit) { switchDistrict(s.to, s.enter); return; }   // 走出街区，去相邻街区
       if (s.key === 'board') { showBoard(1); return; }
       if (s.key === 'granny') {
         // 终章：十灯全亮且已仪式 → 守街人的交接（暗线高潮）
@@ -1488,7 +1510,7 @@
       banner.addEventListener('click', () => go('posterC'));
     }
     view.appendChild(banner);
-    view.appendChild(el('div', 'village-hint', DATA.questUi.tapHint));
+    view.appendChild(el('div', 'village-hint', `📍 ${dist.name} · ${DATA.questUi.tapHint}`));
 
     if (isYouth) maybeAsk();
   };

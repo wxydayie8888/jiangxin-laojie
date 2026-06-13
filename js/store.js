@@ -31,7 +31,7 @@ window.Store = (function () {
     slowwork: {},                           // wsId -> { start }
     products: [],                           // 慢工产物 [{wsId, name, emoji, at}]
     questsDone: [],                         // 已庆祝的任务 id
-    village: { x: 0, y: 0 },                // 主角在村里的位置（px）
+    village: { district: '', x: 0, y: 0 },  // 当前街区 + 主角位置（px）
     points: 0,                              // 灯火值
     npcChats: {},                           // npcKey -> [聊过的章节]
     visitParts: [],                         // 来过的时段（悬赏 s3）

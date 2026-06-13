@@ -764,3 +764,7 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
 }
 .npc-fig-wrap:active { transform: translate(-50%, -100%) scale(.94); }
 .npc-fig-wrap.patrol { animation: patrol 7s ease-in-out infinite; }
+
+/* ── 街区出口路牌（区别于工坊木牌）── */
+.vspot.vexit .plaque { background: #4E6B4A; border-color: #38502f; letter-spacing: .1em; }
+.vspot.vexit .pin { background: #4E6B4A; }

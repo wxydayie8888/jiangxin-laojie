@@ -458,6 +458,61 @@
     Sfx.chime();
   }
 
+  /* ── 进门见匠人序幕（人即入口）：匠人立绘登场 + 第一人称自述逐句 → 上手试试 ── */
+  function showCraftIntro(view, id, ws, onStart) {
+    const intro = DATA.craftIntro[id];
+    const layer = el('div', 'craft-intro');
+    layer.style.backgroundImage = `url(art/inside-${id}.jpg)`;
+    const portrait = el('img', 'ci-portrait');
+    portrait.src = `art/npc-${id}.jpg`;
+    portrait.onerror = () => { portrait.style.display = 'none'; };
+    layer.appendChild(portrait);
+    const name = el('div', 'ci-name', intro.npc);
+    layer.appendChild(name);
+    const bubble = el('div', 'ci-bubble');
+    layer.appendChild(bubble);
+    const skip = el('button', 'ci-skip', '跳过 ⏭');
+    layer.appendChild(skip);
+    const startBtn = el('button', 'btn primary ci-start', '上手试试 →');
+    startBtn.style.display = 'none';
+    layer.appendChild(startBtn);
+    view.appendChild(layer);
+    requestAnimationFrame(() => layer.classList.add('in'));
+    Sfx.chime();
+
+    let i = 0, typing = false, finished = false;
+    function next() {
+      if (finished) return;
+      if (typing) { typing = false; bubble.textContent = intro.lines[i - 1]; return; } // 点一下补完当前句
+      if (i >= intro.lines.length) { showStart(); return; }
+      const text = intro.lines[i++];
+      typing = true; bubble.textContent = '';
+      Sfx.paper && Sfx.paper();
+      let k = 0;
+      (function type() {
+        if (!typing) return;
+        bubble.textContent = text.slice(0, ++k);
+        if (k < text.length) setTimeout(type, 55);
+        else { typing = false; }
+      })();
+    }
+    function showStart() {
+      finished = true;
+      startBtn.style.display = '';
+      skip.style.display = 'none';
+      requestAnimationFrame(() => startBtn.classList.add('show'));
+    }
+    function done() {
+      S.youth.introSeen.push(id); Store.save();
+      layer.classList.add('out');
+      setTimeout(() => { layer.remove(); onStart(); }, 450);
+    }
+    bubble.parentElement.addEventListener('click', e => { if (e.target === startBtn || e.target === skip) return; next(); });
+    startBtn.addEventListener('click', done);
+    skip.addEventListener('click', () => { finished = true; done(); });
+    next();
+  }
+
   /* ── 送礼（星露谷式，但礼物会讲故事）── */
   function giftSheet(ws) {
     const ov = $('#overlay');
@@ -612,7 +667,13 @@
 
     // 手艺样板小游戏（CraftMini）优先于旧玩法（兴趣设计方法论：工序即玩法）
     const mini = (window.CraftMini && window.CraftMini[id]) || Interactions[ws.key];
-    mini(stage, ws, async () => {
+    // 进门见匠人：首次进工坊先播匠人自述序幕（人即入口），看过则直接进游戏
+    const __ci = DATA.craftIntro && DATA.craftIntro[id];
+    if (__ci && !S.youth.introSeen.includes(id)) {
+      stage.style.visibility = 'hidden';
+      showCraftIntro(view, id, ws, () => { stage.style.visibility = ''; mini(stage, ws, miniCb); });
+    } else { mini(stage, ws, miniCb); }
+    async function miniCb() {
       // 完成：灯亮 + 盖章 + 介绍卡 + 纪念物
       S.youth.stamps.push(id);
       S.sim.myLights++;
@@ -655,7 +716,7 @@
         await sleep(1500);
         go('village');
       }
-    });
+    }
   };
 
   /* ── S5 点灯仪式 ── */

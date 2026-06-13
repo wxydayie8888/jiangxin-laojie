@@ -18,7 +18,7 @@ window.Store = (function () {
       goldStamps: [],                       // 金章工坊 id（线下回流）
       metGranny: false,                     // 任务 q1
       posterMade: false,                    // 任务 q9：生成过学徒帖
-      hero: ''                              // 'm' 沈砚 / 'f' 林知夏
+      hero: '', introSeen: []                              // 'm' 沈砚 / 'f' 林知夏
     },
     craftsman: {
       name: '', craftType: '', craftCustom: '', years: '',

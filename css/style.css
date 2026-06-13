@@ -836,3 +836,24 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
 .pt-kiln { position:absolute; left:50%; bottom:26%; transform:translateX(-50%); width:150px; height:130px; z-index:2;
   background:radial-gradient(circle at 50% 80%, rgba(242,120,60,.55), rgba(242,166,90,.2) 60%, transparent 72%);
   animation:pt-fire 1s ease-in-out infinite; pointer-events:none; }
+
+/* ── 进门见匠人序幕 ── */
+.craft-intro { position:absolute; inset:0; z-index:40; background-size:cover; background-position:center;
+  display:flex; flex-direction:column; justify-content:flex-end; opacity:0; transition:opacity .5s; cursor:pointer; }
+.craft-intro.in { opacity:1; }
+.craft-intro.out { opacity:0; }
+.craft-intro::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(24,22,30,.15) 0%, rgba(24,22,30,.35) 55%, rgba(24,22,30,.82) 100%); }
+.ci-portrait { position:relative; z-index:1; width:min(74%,300px); align-self:center; margin-bottom:-6px;
+  border-radius:14px; box-shadow:0 14px 40px rgba(0,0,0,.5); animation:ci-rise .7s var(--ease); }
+@keyframes ci-rise { from{ opacity:0; transform:translateY(40px);} to{ opacity:1; transform:none;} }
+.ci-name { position:relative; z-index:2; align-self:center; margin:10px 0 6px;
+  font-family:"Kaiti SC","STKaiti","Songti SC",serif; font-size:22px; letter-spacing:4px; color:#F7EFE2;
+  text-shadow:0 2px 8px rgba(0,0,0,.6); }
+.ci-bubble { position:relative; z-index:2; margin:0 22px 16px; min-height:78px;
+  background:color-mix(in srgb,var(--paper) 95%,transparent); border:1px solid var(--lantern); border-radius:16px;
+  padding:16px 18px; font-size:16px; line-height:1.8; color:var(--ink); box-shadow:0 8px 24px rgba(0,0,0,.35); }
+.ci-skip { position:absolute; top:calc(14px + env(safe-area-inset-top)); right:16px; z-index:3;
+  background:rgba(20,18,26,.5); color:#F7EFE2; border:1px solid rgba(255,255,255,.25); border-radius:99px;
+  padding:6px 14px; font-size:13px; cursor:pointer; }
+.ci-start { position:relative; z-index:3; margin:0 22px calc(22px + env(safe-area-inset-bottom)); opacity:0; transition:opacity .4s; }
+.ci-start.show { opacity:1; }

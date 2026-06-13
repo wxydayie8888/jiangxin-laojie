@@ -1149,6 +1149,23 @@
     close.style.cssText = 'width:100%;margin-top:8px;';
     close.addEventListener('click', () => { ov.hidden = true; ov.innerHTML = ''; });
     sheet.appendChild(close);
+    // 重新进村（二次确认，保留声音偏好）
+    const reset = el('button', 'btn ghost reset-btn', '🔄 重新进村');
+    let armed = false;
+    reset.addEventListener('click', () => {
+      if (!armed) {
+        armed = true;
+        reset.textContent = '⚠️ 进度会清空，再点一次确认';
+        setTimeout(() => { armed = false; reset.textContent = '🔄 重新进村'; }, 3500);
+        return;
+      }
+      const sound = S.settings.sound;
+      Store.reset();
+      Store.state.settings.sound = sound;
+      Store.save();
+      location.reload();
+    });
+    sheet.appendChild(reset);
     ov.appendChild(sheet);
   }
   function showQuestLog() { showBoard(0); }

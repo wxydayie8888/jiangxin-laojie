@@ -732,3 +732,6 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
           mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
 }
+
+/* ── 重新进村 ── */
+.reset-btn { width: 100%; margin-top: 6px; font-size: 13px; color: var(--ink-dim); min-height: 40px; }

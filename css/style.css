@@ -866,3 +866,17 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
 .codex-h { font-size:15px; font-weight:600; color:var(--lantern); margin-bottom:5px;
   padding-left:9px; border-left:3px solid var(--lantern); }
 .codex-p { font-size:14px; line-height:1.85; color:var(--ink); padding-left:9px; }
+
+/* ── Juice 层（点击手感/飘字/粒子）── */
+.jx-ripple { position:absolute; width:16px; height:16px; margin:-8px 0 0 -8px; border-radius:50%;
+  border:2px solid rgba(242,166,90,.8); pointer-events:none; z-index:90; animation:jx-rip .6s ease-out forwards; }
+@keyframes jx-rip { from{ transform:scale(.4); opacity:.9; } to{ transform:scale(3.2); opacity:0; } }
+.jx-float { position:absolute; transform:translate(-50%,-50%); pointer-events:none; z-index:92;
+  font-size:15px; font-weight:600; color:#E6B450; text-shadow:0 1px 4px rgba(0,0,0,.4);
+  white-space:nowrap; animation:jx-float 1.5s ease-out forwards; }
+.jx-float.big { font-size:24px; }
+@keyframes jx-float { 0%{ opacity:0; transform:translate(-50%,-50%) scale(.8);} 15%{ opacity:1; transform:translate(-50%,-90%) scale(1);} 100%{ opacity:0; transform:translate(-50%,-180%);} }
+.jx-particle { position:absolute; width:7px; height:7px; border-radius:50%; margin:-3px 0 0 -3px;
+  pointer-events:none; z-index:91; opacity:0; }
+.jx-particle.go { animation:jx-part .75s cubic-bezier(.2,.7,.3,1) forwards; }
+@keyframes jx-part { 0%{ opacity:1; transform:translate(0,0) scale(1);} 100%{ opacity:0; transform:translate(var(--dx),var(--dy)) scale(.3);} }

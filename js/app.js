@@ -610,7 +610,9 @@
     inside.onload = () => { stage.classList.add('has-art'); stage.style.backgroundImage = `url(${inside.src})`; };
     view.appendChild(stage);
 
-    Interactions[ws.key](stage, ws, async () => {
+    // 手艺样板小游戏（CraftMini）优先于旧玩法（兴趣设计方法论：工序即玩法）
+    const mini = (window.CraftMini && window.CraftMini[id]) || Interactions[ws.key];
+    mini(stage, ws, async () => {
       // 完成：灯亮 + 盖章 + 介绍卡 + 纪念物
       S.youth.stamps.push(id);
       S.sim.myLights++;

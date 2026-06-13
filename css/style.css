@@ -778,3 +778,32 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
   padding: 11px 14px; font-size: 14px; line-height: 1.7; opacity: 0;
   animation: line-in .8s var(--ease) forwards;
 }
+
+/* ── 手艺样板小游戏（craft-mini）── */
+.craft-stage { display:block; position:relative; }
+.craft-lore { position:absolute; left:14px; right:14px; bottom:54px; z-index:8; text-align:center;
+  background:color-mix(in srgb,var(--paper) 92%,transparent); border:1px solid var(--lantern);
+  border-radius:12px; padding:9px 13px; font-size:13px; line-height:1.6; color:var(--ink);
+  opacity:0; transform:translateY(8px); transition:opacity .5s,transform .5s; }
+.craft-lore.show { opacity:1; transform:none; }
+.jc-board { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+.jc-svg { width:min(86%,360px); height:auto; touch-action:none; overflow:visible; }
+.jc-shard { fill:#E8DFC9; stroke:#6E563E; stroke-width:2.5; cursor:pointer; }
+.jc-shard.fit { fill:#EDE4CE; }
+.jc-holespot { fill:none; stroke:#C4554D; stroke-width:2; stroke-dasharray:3 3; cursor:pointer; }
+.jc-holespot.done { fill:#3A332E; stroke:#3A332E; stroke-dasharray:none; }
+.jc-holespot.cracked { stroke:#B33; fill:#B33; opacity:.5; }
+.jc-nail-set { fill:#C8923E; stroke:#8A6F4D; stroke-width:1; }
+.jc-crack { fill:none; stroke:#E6B450; stroke-width:4; stroke-linecap:round; }
+.jc-water { fill:rgba(120,170,200,.45); animation:jc-rise .7s ease; }
+@keyframes jc-rise { from { opacity:0; transform:translateY(14px) scaleY(.6); } to { opacity:1; transform:none; } }
+.jc-meter { position:absolute; left:18%; right:18%; bottom:42px; height:10px; border-radius:6px;
+  background:color-mix(in srgb,var(--panel) 80%,transparent); border:1px solid var(--line); overflow:hidden; z-index:7; }
+.jc-meter-fill { height:100%; width:0; background:#C4554D; transition:width .05s linear; }
+.jc-meter-fill.good { background:#7FB069; }
+.jc-meter-fill.hot { background:#E55; }
+.jc-tray { position:absolute; left:0; right:0; bottom:30px; display:flex; gap:14px; justify-content:center; z-index:7; }
+.jc-nail { width:26px; height:11px; border-radius:6px; background:#C8923E; border:1px solid #8A6F4D;
+  cursor:grab; box-shadow:0 2px 5px rgba(40,30,20,.3); }
+.jc-nail.dragging { position:absolute; transform:translate(-50%,-50%); z-index:9; }
+.jc-pour { position:absolute; left:50%; bottom:30px; transform:translateX(-50%); z-index:7; }

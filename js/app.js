@@ -1194,8 +1194,11 @@
     let stepDist = 0, stepAlt = false;
     const hero = el('div', 'hero');
     const flipper = el('div', 'flipper');
+    const baseSrc = (DATA.heroes[S.youth.hero] || {}).sprite || V.hero;       // 站立帧
+    const walkSrc = baseSrc.replace('.png', '-walk.png');                     // 迈步帧
+    new Image().src = walkSrc;                                                // 预载，切换不闪
     const hi = new Image();
-    hi.src = (DATA.heroes[S.youth.hero] || {}).sprite || V.hero;
+    hi.src = baseSrc;
     hi.onerror = () => { hi.src = V.hero; };
     flipper.appendChild(hi);
     hero.appendChild(flipper);
@@ -1205,7 +1208,14 @@
     const bandY = [V.walkBand[0] * V.mapH, V.walkBand[1] * V.mapH];
     const clampPt = (x, y) => [Math.max(40, Math.min(V.mapW - 40, x)), Math.max(bandY[0], Math.min(bandY[1], y))];
 
-    function place() { hero.style.left = hx + 'px'; hero.style.top = hy + 'px'; }
+    function place() {
+      hero.style.left = hx + 'px'; hero.style.top = hy + 'px';
+      // 近大远小：越靠街道下沿（离镜头近）人越大
+      const f = (hy - bandY[0]) / ((bandY[1] - bandY[0]) || 1);
+      const s = Math.max(0.78, Math.min(1.04, 0.82 + 0.22 * f));
+      hero.style.transform = `translate(-50%, -94%) scale(${s.toFixed(3)})`;
+      hero.style.zIndex = 6 + Math.round(f * 10);   // 靠前的盖住靠后的
+    }
     let camX = null, camY = null;
     function camera(snap) {
       const vw = vp.clientWidth || 1, vh = vp.clientHeight || 1;
@@ -1225,13 +1235,14 @@
         const adv = Math.min(d, V.speed * dt);
         hx += dx / d * adv; hy += dy / d * adv;
         stepDist += adv;
-        if (stepDist > 52) { stepDist = 0; stepAlt = !stepAlt; Sfx.footstep(stepAlt); }
+        if (stepDist > 52) { stepDist = 0; stepAlt = !stepAlt; Sfx.footstep(stepAlt); hi.src = stepAlt ? walkSrc : baseSrc; }
         place(); camera();
       } else {
         camera();   // 停下后镜头继续缓动到位
       }
       if (d <= 4 && hero.classList.contains('moving')) {
         hero.classList.remove('moving');
+        hi.src = baseSrc;   // 停下复位站立帧
         S.village.x = hx; S.village.y = hy; Store.save();
         if (pending) { const p = pending; pending = null; p.duet ? playDuet(p.duet) : p.npcChat ? chatNpc(p.npcChat, p.chIdx) : act(p); }
       }
@@ -1296,8 +1307,10 @@
         const ts = V.spots.find(sp => sp.key === tk) || V.spots.find(sp => sp.key === 'swing');
         nx = Math.min(0.96, ts.x + 0.02); ny = Math.min(0.92, ts.y + 0.08);
       }
-      const nb = el('button', 'npc-chip' + (npc.patrol ? ' patrol' : ''));
-      nb.innerHTML = `<span class="e">${npc.emoji}</span><span>${npc.name}</span>`;
+      const nb = el('button', (npc.sprite ? 'npc-fig-wrap' : 'npc-chip') + (npc.patrol ? ' patrol' : ''));
+      nb.innerHTML = npc.sprite
+        ? `<img class="npc-fig" src="${npc.sprite}"><span class="npc-name">${npc.name}</span>`
+        : `<span class="e">${npc.emoji}</span><span>${npc.name}</span>`;
       nb.style.left = nx * V.mapW + 'px';
       nb.style.top = ny * V.mapH + 'px';
       if (npc.patrol) nb.style.setProperty('--patrol', npc.patrol + 'px');

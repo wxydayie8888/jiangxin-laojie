@@ -611,18 +611,32 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
 }
 @keyframes qbounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
 .hero { position: absolute; z-index: 6; width: 104px; pointer-events: none; transform: translate(-50%, -94%); }
-.hero .flipper { transition: transform .15s; }
+.hero .flipper { transition: transform .12s; }          /* 只管朝向 */
 .hero.flip .flipper { transform: scaleX(-1); }
-.hero .flipper img { width: 100%; display: block; transform-origin: 50% 92%; }
-.hero.moving .flipper img { animation: walkbob .4s ease-in-out infinite; }
-@keyframes walkbob {
-  0%, 100% { transform: translateY(0) rotate(-1.6deg); }
-  50% { transform: translateY(-7px) rotate(1.8deg); }
+.hero .flipper img { width: 100%; display: block; transform-origin: 50% 96%; }  /* 支点在脚底 */
+/* 真实步态：脚底支点的重心转移 + 落地挤压/腾空拉伸 + 2 倍步频颠簸 */
+.hero.moving .flipper img { animation: walk .5s linear infinite; }
+@keyframes walk {
+  0%   { transform: translateY(0)    scale(1.05, .95) rotate(-2.2deg); }  /* 左脚落地：踏实压扁 */
+  12%  { transform: translateY(-2px) scale(1, 1)      rotate(-1deg); }
+  25%  { transform: translateY(-8px) scale(.97, 1.04) rotate(0deg); }     /* 腾空：抬起拉伸 */
+  37%  { transform: translateY(-2px) scale(1, 1)      rotate(1deg); }
+  50%  { transform: translateY(0)    scale(1.05, .95) rotate(2.2deg); }   /* 右脚落地 */
+  62%  { transform: translateY(-2px) scale(1, 1)      rotate(1deg); }
+  75%  { transform: translateY(-8px) scale(.97, 1.04) rotate(0deg); }     /* 腾空 */
+  87%  { transform: translateY(-2px) scale(1, 1)      rotate(-1deg); }
+  100% { transform: translateY(0)    scale(1.05, .95) rotate(-2.2deg); }
 }
 .hero .hshadow {
   position: absolute; left: 50%; bottom: -3px; width: 62px; height: 13px;
   transform: translateX(-50%);
   background: radial-gradient(ellipse, rgba(40,30,20,.32), transparent 68%);
+}
+/* 影子随步伐：落地实、腾空虚（与颠簸 2 倍步频同步） */
+.hero.moving .hshadow { animation: walkshadow .5s linear infinite; }
+@keyframes walkshadow {
+  0%, 50%, 100% { transform: translateX(-50%) scaleX(1);   opacity: .34; }
+  25%, 75%      { transform: translateX(-50%) scaleX(.66); opacity: .15; }
 }
 .quest-banner {
   position: absolute; top: calc(58px + env(safe-area-inset-top)); left: 12px; right: 12px; z-index: 9;
@@ -735,3 +749,18 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
 
 /* ── 重新进村 ── */
 .reset-btn { width: 100%; margin-top: 6px; font-size: 13px; color: var(--ink-dim); min-height: 40px; }
+
+/* ── NPC 立绘小人（地图上每人独立造型）── */
+.npc-fig-wrap {
+  position: absolute; transform: translate(-50%, -100%); z-index: 5;
+  display: flex; flex-direction: column; align-items: center;
+  background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
+}
+.npc-fig { width: 76px; display: block; filter: drop-shadow(0 5px 4px rgba(40,30,20,.3)); }
+.npc-fig-wrap .npc-name {
+  background: #6B513A; color: #F7EFE2; border: 1px solid #8A6F4D; border-radius: 7px;
+  padding: 2px 9px; font-size: 12px; white-space: nowrap; margin-top: -8px; letter-spacing: .04em;
+  box-shadow: 0 2px 7px rgba(40,30,20,.28);
+}
+.npc-fig-wrap:active { transform: translate(-50%, -100%) scale(.94); }
+.npc-fig-wrap.patrol { animation: patrol 7s ease-in-out infinite; }

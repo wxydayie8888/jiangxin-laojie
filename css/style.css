@@ -756,7 +756,8 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
   display: flex; flex-direction: column; align-items: center;
   background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
 }
-.npc-fig { width: 76px; display: block; filter: drop-shadow(0 5px 4px rgba(40,30,20,.3)); }
+.npc-fig { width: 76px; display: block; filter: drop-shadow(0 5px 4px rgba(40,30,20,.3));
+  transform: scale(var(--ds, 1)); transform-origin: 50% 100%; }   /* 与主角同一套近大远小，脚底贴地 */
 .npc-fig-wrap .npc-name {
   background: #6B513A; color: #F7EFE2; border: 1px solid #8A6F4D; border-radius: 7px;
   padding: 2px 9px; font-size: 12px; white-space: nowrap; margin-top: -8px; letter-spacing: .04em;

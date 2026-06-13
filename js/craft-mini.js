@@ -190,5 +190,127 @@ window.CraftMini = (function () {
     }
   }
 
-  return { 1: jianci };
+  /* ③ 陶艺拉坯：定心→拉坯(手抖则塌)→收口→选釉→开窑窑变(奇观) */
+  function pottery(stage, ws, done) {
+    stage.classList.add('craft-stage');
+    const wrap = el('div', 'pt-wrap');
+    stage.appendChild(wrap);
+    const wheel = el('div', 'pt-wheel');          // 转盘
+    const clay = el('div', 'pt-clay');            // 泥团
+    wrap.appendChild(wheel); wrap.appendChild(clay);
+    let spin = 0, spinRAF;
+    (function spinLoop(){ spin += 6; wheel.style.transform = `translateX(-50%) rotateX(60deg) rotate(${spin}deg)`; spinRAF = requestAnimationFrame(spinLoop); })();
+
+    let step = 0;
+    guide(stage, '先揉泥定心。点泥团中心，把它稳住。');
+
+    // —— 步骤1：定心（连点中心，稳定度↑）——
+    let center = 0;
+    clay.classList.add('wobble');
+    clay.addEventListener('pointerdown', onCenter);
+    function onCenter(e){
+      if (step !== 0) return;
+      e.stopPropagation();
+      center = Math.min(1, center + 0.2);
+      clay.style.setProperty('--wob', (1 - center).toFixed(2));
+      Sfx.knock && Sfx.knock(); buzz(8);
+      if (center === 0.2) reveal(stage, '泥要定心——心不静，泥就跑偏。');
+      if (center >= 1) {
+        step = 1; clay.classList.remove('wobble');
+        clay.removeEventListener('pointerdown', onCenter);
+        guide(stage, '顺着泥，往上拉。稳稳地——手一抖，就塌。');
+        startThrow();
+      }
+    }
+
+    // —— 步骤2：拉坯（向上滑塑形，抖动/回拉则塌）——
+    function startThrow(){
+      let shape = 0, lastY = null, stability = 1, dirUp = 0;
+      const stages = ['pt-s0','pt-s1','pt-s2','pt-s3'];   // 矮墩→碗→瓶→高瓶
+      let humOn = false;
+      stage.addEventListener('pointerdown', e => { lastY = e.clientY; humOn = true; });
+      stage.addEventListener('pointerup', () => { lastY = null; humOn = false; });
+      stage.addEventListener('pointermove', e => {
+        if (step !== 1 || lastY == null) return;
+        const dy = lastY - e.clientY; lastY = e.clientY;
+        if (Math.abs(dy) > 26) {            // 抖动太猛 → 失稳
+          stability -= 0.34;
+          clay.classList.add('pt-shake');
+          setTimeout(()=>clay.classList.remove('pt-shake'), 200);
+          if (stability <= 0) {             // 塌了——温柔失败，回到本阶段重来
+            stability = 1; shape = Math.max(0, shape - 1);
+            clay.className = 'pt-clay ' + stages[shape];
+            guide(stage, '塌了！手不能抖——稳住，再来。');
+            Sfx.paper && Sfx.paper(); buzz([20,40,20]);
+          }
+          return;
+        }
+        if (dy > 4) {                       // 平稳上拉 → 长高
+          if (humOn && Sfx.hum) Sfx.hum();
+          dirUp += dy;
+          stability = Math.min(1, stability + 0.05);
+          if (dirUp > 130 && shape < 3) {
+            shape++; dirUp = 0;
+            clay.className = 'pt-clay ' + stages[shape];
+            buzz(12);
+            if (shape === 1) reveal(stage, '手不能抖——一抖，前功尽弃。这叫"手上的稳"。');
+            if (shape === 3) { step = 2; guide(stage,'够高了。捏一下口沿，收个口。'); startRim(); }
+          }
+        }
+      });
+    }
+
+    // —— 步骤3：收口 ——
+    function startRim(){
+      const rim = el('button','btn pt-rim','轻轻收口');
+      stage.appendChild(rim);
+      rim.addEventListener('click', ()=>{
+        rim.remove(); clay.classList.add('pt-rimmed');
+        reveal(stage,'收口——一只器物的气度，全在这一圈。');
+        step = 3; setTimeout(startGlaze, 700);
+      });
+    }
+
+    // —— 步骤4：选釉 ——
+    function startGlaze(){
+      guide(stage,'上釉吧。入窑一色，出窑……谁也说不准。');
+      const glazes = [['豆青','#9DB99A'],['月白','#E8EDEA'],['柿红','#C4554D']];
+      const row = el('div','pt-glazes');
+      glazes.forEach(([nm,col])=>{
+        const g = el('button','pt-glaze');
+        g.style.background = col; g.title = nm;
+        g.addEventListener('click', ()=>{
+          clay.style.setProperty('--glaze', col);
+          clay.classList.add('pt-glazed');
+          Store.state.youth.glaze = nm; Store.save();
+          row.remove(); reveal(stage,`上的是${nm}。可釉色入了窑，就由不得你了。`);
+          step = 4; setTimeout(startKiln, 900);
+        });
+        row.appendChild(g);
+      });
+      stage.appendChild(row);
+    }
+
+    // —— 步骤5（奇观）：开窑窑变 ——
+    function startKiln(){
+      guide(stage,'封窑。火候到了，开窑。');
+      const fire = el('div','pt-kiln'); stage.appendChild(fire);
+      clay.classList.add('pt-firing');
+      const open = el('button','btn primary pt-open','开 窑');
+      stage.appendChild(open);
+      open.addEventListener('click', ()=>{
+        open.remove(); fire.remove();
+        cancelAnimationFrame(spinRAF);
+        // 窑变：随机一个意料之外的釉色渐变
+        const yaobian = ['linear-gradient(160deg,#5B7A8C,#9DB99A,#C9A86A)','linear-gradient(160deg,#7C5A8C,#C4554D,#E6B450)','linear-gradient(150deg,#3E6B5A,#8AA37B,#E8EDEA)','linear-gradient(160deg,#8C4A3E,#C4554D,#E8C36A)'];
+        clay.style.background = yaobian[Math.floor(Math.random()*yaobian.length)];
+        clay.classList.remove('pt-firing'); clay.classList.add('pt-done');
+        Sfx.arpeggio && Sfx.arpeggio(); buzz(30);
+        setTimeout(()=> reveal(stage,'窑变——入窑一色，出窑万彩。同一炉火，谁也烧不出第二只。'), 600);
+        setTimeout(done, 2800);
+      });
+    }
+  }
+
+  return { 1: jianci, 3: pottery };
 })();

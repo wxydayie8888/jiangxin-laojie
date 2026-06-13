@@ -804,9 +804,11 @@
       back.addEventListener('click', () => go('village'));
       row2.appendChild(back);
     } else {
+      const enter = el('button', 'btn', '🏮 去老街走走');
+      enter.addEventListener('click', () => go('village'));
       const redo = el('button', 'btn ghost', '重新布置工坊');
       redo.addEventListener('click', () => go('decorate'));
-      row2.appendChild(redo);
+      row2.appendChild(enter); row2.appendChild(redo);
     }
     wrap.appendChild(row2);
   }
@@ -1440,31 +1442,42 @@
       else if (s.key.startsWith('shop')) go('workshop', +s.key.slice(4));
     }
 
-    // HUD：任务横幅 + 操作提示（先结算再渲染，计数才准）
-    evaluateQuests(true);
-    // 章节卡：翻开新的一卷
-    if (chIdx > (S.lastChIdx ?? -1)) {
-      S.lastChIdx = chIdx; Store.save();
-      const cc = DATA.chapterCards[chIdx];
-      if (cc) setTimeout(() => showChapterCard(cc), 600);
+    // HUD：横幅 + 操作提示
+    const isYouth = S.role === 'youth';
+    if (isYouth) {
+      // 任务结算（先结算再渲染，计数才准）
+      evaluateQuests(true);
+      // 章节卡：翻开新的一卷
+      if (chIdx > (S.lastChIdx ?? -1)) {
+        S.lastChIdx = chIdx; Store.save();
+        const cc = DATA.chapterCards[chIdx];
+        if (cc) setTimeout(() => showChapterCard(cc), 600);
+      }
     }
-    // 街角小事：每天进村第一眼的一点不一样
+    // 街角小事：每天进村第一眼的一点不一样（双角色共享）
     const today = new Date().toDateString();
     if (S.lastMicroDay !== today) {
       S.lastMicroDay = today; Store.save();
       const me = DATA.microEvents[Math.floor(Math.random() * DATA.microEvents.length)];
       setTimeout(() => toast(me, 4200), 2600);
     }
-    const q = activeQuest();
     const banner = el('button', 'quest-banner');
-    banner.innerHTML = q
-      ? `<span class="ch">${q.ch}</span><span class="qt">${q.title}</span><span class="more">📜 ${S.questsDone.length}/${DATA.quests.length}</span>`
-      : `<span class="ch">圆满</span><span class="qt">${DATA.questUi.allDone}</span><span class="more">📜</span>`;
-    banner.addEventListener('click', showQuestLog);
+    if (isYouth) {
+      const q = activeQuest();
+      banner.innerHTML = q
+        ? `<span class="ch">${q.ch}</span><span class="qt">${q.title}</span><span class="more">📜 ${S.questsDone.length}/${DATA.quests.length}</span>`
+        : `<span class="ch">圆满</span><span class="qt">${DATA.questUi.allDone}</span><span class="more">📜</span>`;
+      banner.addEventListener('click', showQuestLog);
+    } else {
+      // 工匠：开张后串门逛街，横幅点回自己的名片
+      const shop = S.craftsman.workshopName || '你的工坊';
+      banner.innerHTML = `<span class="ch">${shop}</span><span class="qt">开张了。四处走走，串串门。</span><span class="more">📇 名片</span>`;
+      banner.addEventListener('click', () => go('posterC'));
+    }
     view.appendChild(banner);
     view.appendChild(el('div', 'village-hint', DATA.questUi.tapHint));
 
-    maybeAsk();
+    if (isYouth) maybeAsk();
   };
 
   /* ── 「去村里」驿站：线下项目 + 金章暗号（策划案 15 章 O2O）── */

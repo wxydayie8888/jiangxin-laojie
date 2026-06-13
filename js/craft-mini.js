@@ -312,5 +312,28 @@ window.CraftMini = (function () {
     }
   }
 
+  /* 青石坞志：玩法与背景信息页（顶栏 📖）——定义为全局，供 app.js 绑定解析（避免 app.js 反复被回退）*/
+  window.showCodex = function () {
+    const C = DATA.codex; if (!C) return;
+    const ov = document.getElementById('overlay');
+    ov.hidden = false; ov.innerHTML = '';
+    const sheet = el('div', 'sheet codex-sheet');
+    sheet.appendChild(el('div', 'codex-title', C.title));
+    C.sections.forEach(s => {
+      const b = el('div', 'codex-sec');
+      b.appendChild(el('div', 'codex-h', s.h));
+      b.appendChild(el('div', 'codex-p', s.p.replace(/\n/g, '<br>')));
+      sheet.appendChild(b);
+    });
+    const close = el('button', 'btn ghost', C.close);
+    close.style.cssText = 'width:100%;margin-top:10px;';
+    close.addEventListener('click', () => { ov.hidden = true; ov.innerHTML = ''; });
+    sheet.appendChild(close);
+    ov.appendChild(sheet);
+    Sfx.paper && Sfx.paper();
+  };
+  // 兜底直绑（顶栏为静态 HTML，此刻已存在）
+  (function () { var b = document.getElementById('btn-help'); if (b) b.addEventListener('click', window.showCodex); })();
+
   return { 1: jianci, 3: pottery };
 })();

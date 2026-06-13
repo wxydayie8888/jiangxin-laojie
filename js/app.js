@@ -1807,6 +1807,8 @@
     if (Sfx.enabled) Sfx.chime();
   });
 
+  $('#btn-help').addEventListener('click', showCodex);
+
   $('#btn-bag').addEventListener('click', () => {
     const ov = $('#overlay');
     ov.hidden = false; ov.innerHTML = '';

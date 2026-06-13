@@ -857,3 +857,12 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
   padding:6px 14px; font-size:13px; cursor:pointer; }
 .ci-start { position:relative; z-index:3; margin:0 22px calc(22px + env(safe-area-inset-bottom)); opacity:0; transition:opacity .4s; }
 .ci-start.show { opacity:1; }
+
+/* ── 青石坞志（玩法+背景页）── */
+.codex-sheet { max-height:80vh; overflow-y:auto; }
+.codex-title { font-family:"Kaiti SC","STKaiti","Songti SC",serif; font-size:24px; letter-spacing:8px;
+  text-align:center; color:var(--vermilion); font-weight:700; margin:4px 0 14px; }
+.codex-sec { margin-bottom:16px; }
+.codex-h { font-size:15px; font-weight:600; color:var(--lantern); margin-bottom:5px;
+  padding-left:9px; border-left:3px solid var(--lantern); }
+.codex-p { font-size:14px; line-height:1.85; color:var(--ink); padding-left:9px; }

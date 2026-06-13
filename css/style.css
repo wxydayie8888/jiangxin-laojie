@@ -769,3 +769,12 @@ body.warm[data-daypart="night"]   { --bg: #E9DBC2; --bg2: #DECBA9; --glow: rgba(
 /* ── 街区出口路牌（区别于工坊木牌）── */
 .vspot.vexit .plaque { background: #4E6B4A; border-color: #38502f; letter-spacing: .1em; }
 .vspot.vexit .pin { background: #4E6B4A; }
+
+/* ── 离线街市流水账 ── */
+.sheet.townlog .hint { text-align: center; line-height: 1.9; font-size: 14px; color: var(--ink); }
+.townlog-list { display: flex; flex-direction: column; gap: 9px; padding: 14px 0 4px; }
+.townlog-row {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 12px;
+  padding: 11px 14px; font-size: 14px; line-height: 1.7; opacity: 0;
+  animation: line-in .8s var(--ease) forwards;
+}

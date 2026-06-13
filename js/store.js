@@ -27,7 +27,7 @@ window.Store = (function () {
     },
     letters: { delivered: [], read: [], gold: [] },   // 工坊 id 列表；gold=金章特别回信
     settings: { sound: null },              // null=未询问
-    sim: { myLights: 0, lastVisit: 0, firstSeen: 0 },
+    sim: { myLights: 0, lastVisit: 0, firstSeen: 0, lastTown: 0 },
     slowwork: {},                           // wsId -> { start }
     products: [],                           // 慢工产物 [{wsId, name, emoji, at}]
     questsDone: [],                         // 已庆祝的任务 id

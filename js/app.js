@@ -423,6 +423,32 @@
     }
   }
 
+  /* ── 离线街市流水账：你不在的时候 ── */
+  function showTownLog() {
+    const T = DATA.townLog;
+    const lit = S.youth.stamps;
+    const items = T.pool.filter(([id]) => id === null || lit.includes(id));
+    for (let i = items.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [items[i], items[j]] = [items[j], items[i]]; }
+    const pick = items.slice(0, Math.min(4, items.length));
+    const ov = $('#overlay');
+    ov.hidden = false; ov.innerHTML = '';
+    const sheet = el('div', 'sheet townlog');
+    sheet.innerHTML = `<p class="hint">${T.title}<br>${T.sub}</p>`;
+    const list = el('div', 'townlog-list');
+    pick.forEach(([, text], i) => {
+      const row = el('div', 'townlog-row', text);
+      row.style.animationDelay = (i * 0.5 + 0.2) + 's';
+      list.appendChild(row);
+    });
+    sheet.appendChild(list);
+    const b = el('button', 'btn primary', T.back);
+    b.style.cssText = 'width:100%;margin-top:14px;';
+    b.addEventListener('click', () => { ov.hidden = true; ov.innerHTML = ''; });
+    sheet.appendChild(b);
+    ov.appendChild(sheet);
+    Sfx.chime();
+  }
+
   /* ── 章节卡：半屏卷轴仪式 ── */
   function showChapterCard(cc) {
     const card = el('div', 'chapter-card');
@@ -1489,9 +1515,14 @@
         if (cc) setTimeout(() => showChapterCard(cc), 600);
       }
     }
-    // 街角小事：每天进村第一眼的一点不一样（双角色共享）
+    // 离线街市流水账：久别回村弹"你不在的时候"（对标大掌柜离线收益的情感版）
+    const since = S.sim.lastTown ? Date.now() - S.sim.lastTown : 0;
+    const townPop = isYouth && S.sim.lastTown && since > DATA.townLog.thresholdMs && S.youth.stamps.length >= 1;
+    S.sim.lastTown = Date.now(); Store.save();
+    if (townPop) setTimeout(() => showTownLog(), 700);
+    // 街角小事：每天进村第一眼的一点不一样（流水账弹出时让位，避免信息撞车）
     const today = new Date().toDateString();
-    if (S.lastMicroDay !== today) {
+    if (!townPop && S.lastMicroDay !== today) {
       S.lastMicroDay = today; Store.save();
       const me = DATA.microEvents[Math.floor(Math.random() * DATA.microEvents.length)];
       setTimeout(() => toast(me, 4200), 2600);
@@ -1512,7 +1543,7 @@
     view.appendChild(banner);
     view.appendChild(el('div', 'village-hint', `📍 ${dist.name} · ${DATA.questUi.tapHint}`));
 
-    if (isYouth) maybeAsk();
+    if (isYouth && !townPop) maybeAsk();   // 流水账弹出时散落提问让位，避免 overlay 撞车
   };
 
   /* ── 「去村里」驿站：线下项目 + 金章暗号（策划案 15 章 O2O）── */
